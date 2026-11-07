@@ -12,7 +12,7 @@ Cotações persistem entradas e resultado. A publicação confere a cotação ma
 
 Eventos são persistidos antes do SSE, com cursor, heartbeat, retomada e revalidação da sessão. A interface distingue fila, execução, conclusão, falha e configuração pendente. Progresso real sem percentual é indeterminado. O demo gera eventos fictícios por interação identificada.
 
-Workflows internos verificam dados disponíveis. Com Redis, pedidos são persistidos/enfileirados para o worker HMAC. Dez exports n8n orquestram os serviços; agendas precisam de importação/ativação e workspace habilitado. Sincronização sem conector autorizado retorna configuração pendente. Preparação de anúncio e processamento de pedido geram recomendações/conferências, sem compra ou publicação automática.
+Workflows internos verificam dados disponíveis. Com Redis, pedidos são persistidos/enfileirados para o worker HMAC. Onze exports n8n orquestram os serviços; agendas precisam de importação/ativação e workspace habilitado. Sincronização sem conector autorizado retorna configuração pendente. Preparação de anúncio e processamento de pedido geram recomendações/conferências, sem compra ou publicação automática.
 
 ## Fase 5 — marketplace e pedidos
 

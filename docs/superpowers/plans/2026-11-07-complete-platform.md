@@ -6,7 +6,7 @@ Autorização: continuar até concluir todo o trabalho, sem confirmações rotin
 
 - [x] Precificação determinística, score com evidências e interface de cenários; testes unitários.
 - [x] Adaptadores oficiais OpenAI Responses, Mercado Livre OAuth/REST e n8n; HTTP injetável, testes de contratos, segredos AES-GCM, nenhum acesso externo em testes.
-- [x] Infraestrutura isolada: Dockerfiles/Compose dos seis serviços, worker BullMQ, dez workflows n8n, backup/restauração, health checks e guia Coolify.
+- [x] Infraestrutura isolada: Dockerfiles/Compose dos seis serviços, worker BullMQ, onze workflows n8n, backup/restauração, health checks e guia Coolify.
 - [x] Persistência e API de regras financeiras, análises, agentes, decisões, aprovações, anúncios, pedidos, eventos, alertas e conversas.
 - [x] Central de operações com SSE real, histórico, custos e aprovações; execução somente quando configuração permite, demonstração identificada e isolada.
 - [x] Telas operacionais restantes, relatórios/exportação, assistente e landing com screenshots reais e arquitetura.

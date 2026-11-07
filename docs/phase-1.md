@@ -29,7 +29,7 @@ Prisma Postgres local usa um mecanismo PostgreSQL embarcado adequado ao desenvol
 
 - Fase 2: fontes autorizadas de fornecedores; schema comercial e importação. Sem presumir API pública de Dogama/Dropi.
 - Fase 3: chave OpenAI, ferramentas restritas e limites; motor determinístico de precificação e seus testes. Custos de IA continuarão zerados até execuções reais.
-- Fase 4: Redis/BullMQ, credenciais n8n e dez workflows versionados com idempotência, logs, retry e assinatura de webhooks. SSE com eventos persistidos, sem depender da disponibilidade do n8n.
+- Fase 4: Redis/BullMQ, credenciais n8n e onze workflows versionados com idempotência, logs, retry e assinatura de webhooks. SSE com eventos persistidos, sem depender da disponibilidade do n8n.
 - Fase 5: aplicação OAuth Mercado Livre, escopos oficiais e conta autorizada. Publicação e ações sensíveis exigirão aprovação humana.
 - Fase 6: analytics completo, PDF, landing page e apresentação expandida.
 - Fase 7: revisão de segurança, LGPD, recuperação de acesso, backups/restauração, Dockerfiles, Coolify e VPS isolada. Nenhum serviço existente será alterado.
