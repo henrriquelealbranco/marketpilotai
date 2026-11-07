@@ -1,6 +1,6 @@
-# Verificação local — 07/11/2026
+# Verificação local e CI — 07/11/2026
 
-Entrega 0.3.0, preservando as fases 1/2. Node 24, Windows, Chromium headless e Prisma Postgres local de desenvolvimento. GitHub CI está configurado com PostgreSQL 17; não foi executado remotamente nesta entrega.
+Entrega 0.3.0, preservando as fases 1/2. Validação local com Node 24, Windows, Chromium headless e Prisma Postgres de desenvolvimento. O GitHub Actions também foi aprovado com Ubuntu, Node 24, PostgreSQL 17 e Chromium.
 
 | Verificação              | Resultado                                                                                              |
 | ------------------------ | ------------------------------------------------------------------------------------------------------ |
@@ -29,4 +29,10 @@ Sem Docker, Redis, runtime n8n ou credenciais externas neste ambiente. Testes lo
 
 Backups/restauração foram preparados/revisados, sem execução contra base comercial. Nenhum sistema da VPS foi alterado.
 
-O checkout está vinculado ao repositório oficial [henrriquelealbranco/marketpilotai](https://github.com/henrriquelealbranco/marketpilotai), com `origin` e branch principal `main`. Os resultados acima descrevem os testes locais; a execução remota do GitHub Actions é registrada separadamente.
+## GitHub Actions
+
+O checkout está vinculado ao repositório oficial [henrriquelealbranco/marketpilotai](https://github.com/henrriquelealbranco/marketpilotai), com `origin` e branch principal `main`.
+
+A [execução 42424963618](https://github.com/henrriquelealbranco/marketpilotai/actions/runs/42424963618), na revisão `7f33f2223093209552bc5631525339c55d8e2149`, concluiu com sucesso: instalação, geração do Prisma, migrations, validação estrutural da infraestrutura, formatação, lint, TypeScript, testes unitários, integração, build e E2E. Os processos Playwright recebem portas explícitas: API em 4000 e web em 3000, evitando que a interface herde a porta da API no CI.
+
+Essa execução comprova o ambiente de testes do GitHub; os limites de ativação externa e produção descritos acima permanecem.
