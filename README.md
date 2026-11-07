@@ -2,6 +2,8 @@
 
 Plataforma SaaS de operações comerciais com catálogo rastreável, precificação determinística, agentes supervisionados e integrações oficiais configuráveis. Interface em português, Inter local e identidade roxa oficial, com temas escuro/claro.
 
+Repositório oficial: [henrriquelealbranco/marketpilotai](https://github.com/henrriquelealbranco/marketpilotai). A branch principal é `main`; as alterações continuam neste projeto, sincronizadas com esse repositório.
+
 ![Central de operações em demonstração](docs/screenshots/operations-dark.png)
 
 As fases 1/2 foram preservadas. As fases 3–7 ampliam a aplicação existente. **O ambiente local não tem credenciais OpenAI/Mercado Livre/n8n, Redis nem Docker.** Análises por regras e módulos internos funcionam sem essas conexões. Adaptadores externos têm testes com transporte controlado; ativação e deploy remoto não foram realizados.
@@ -11,6 +13,8 @@ As fases 1/2 foram preservadas. As fases 3–7 ampliam a aplicação existente. 
 Requisitos: Node.js 22.12+ (validado com Node 24), npm, portas 3000/4000 e PostgreSQL. O banco de desenvolvimento pode ser iniciado sem Docker:
 
 ```powershell
+git clone https://github.com/henrriquelealbranco/marketpilotai.git
+cd marketpilotai
 npm ci
 Copy-Item .env.example .env
 npm run db:local

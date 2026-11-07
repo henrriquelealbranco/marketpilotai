@@ -27,4 +27,6 @@ PDFs da API fonte e compilada foram renderizados para inspeção visual. A fonte
 
 Sem Docker, Redis, runtime n8n ou credenciais externas neste ambiente. Testes locais **não comprovam** containers, webhooks públicos, OAuth real, publicação comercial, faturamento OpenAI, agendas n8n, backup/restauração no destino, TLS ou carga da VPS. Ensaios e ativação estão em [deploy](deployment.md), [integrações](integrations.md) e [workflows](../workflows/README.md).
 
-Backups/restauração foram preparados/revisados, sem execução contra base comercial. Nenhum sistema da VPS foi alterado. Não há repositório remoto Git configurado neste checkout.
+Backups/restauração foram preparados/revisados, sem execução contra base comercial. Nenhum sistema da VPS foi alterado.
+
+O checkout está vinculado ao repositório oficial [henrriquelealbranco/marketpilotai](https://github.com/henrriquelealbranco/marketpilotai), com `origin` e branch principal `main`. Os resultados acima descrevem os testes locais; a execução remota do GitHub Actions é registrada separadamente.
