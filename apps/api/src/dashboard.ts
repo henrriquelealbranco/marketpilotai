@@ -35,7 +35,7 @@ export function buildDashboard(
     estimatedProfitCents = 0,
     realizedProfitCents = 0;
   for (const order of filtered) {
-    const profit = order.revenueCents - order.costCents;
+    const profit = order.costsKnown === false ? 0 : order.revenueCents - order.costCents;
     revenueCents += order.revenueCents;
     estimatedProfitCents += profit;
     if (order.status === 'delivered') realizedProfitCents += profit;
@@ -63,6 +63,7 @@ export function buildDashboard(
     products.set(order.productId, product);
   }
   return {
+    unknownCostOrders: filtered.filter((order) => order.costsKnown === false).length,
     source,
     asOf: asOf.toISOString(),
     days,

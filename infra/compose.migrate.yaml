@@ -1,0 +1,17 @@
+# One-shot migration task; combine with compose.production.yaml, never expose publicly.
+services:
+  marketpilot-migrate:
+    profiles: [migrate]
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+      target: migrate
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://marketpilot_app:${MARKETPILOT_DB_PASSWORD:?Set app database password}@marketpilot-postgres:5432/marketpilot
+    networks: [backend]
+    depends_on:
+      marketpilot-postgres: { condition: service_healthy }
+    mem_limit: 512m
+    cpus: 0.5
+    restart: 'no'

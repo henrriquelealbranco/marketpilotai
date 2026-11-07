@@ -1,0 +1,63 @@
+{
+  "name": "MarketPilot / error-handler",
+  "active": false,
+  "nodes": [
+    {
+      "id": "mp-error-trigger",
+      "name": "Unhandled error",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "parameters": {}
+    },
+    {
+      "id": "mp-persist-error",
+      "name": "Persist operational error",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [260, 0],
+      "parameters": {
+        "method": "POST",
+        "url": "http://marketpilot-api:4000/internal/workflows/failure",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ workflowKey: $json.workflow.name.replace('MarketPilot / ', ''), executionId: String($json.execution?.id || 'unknown'), source: 'n8n-error-handler' }) }}",
+        "options": {
+          "timeout": 15000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          }
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "notes": "Select protected MarketPilot Internal API Header Auth credential; never export the credential value."
+    }
+  ],
+  "connections": {
+    "Unhandled error": {
+      "main": [
+        [
+          {
+            "node": "Persist operational error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "all"
+  },
+  "pinData": {},
+  "tags": []
+}

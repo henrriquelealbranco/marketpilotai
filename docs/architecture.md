@@ -1,5 +1,7 @@
 # MarketPilot AI — arquitetura
 
+> Registro das fases 1/2 abaixo. A evolução atual está em [fases 3–7](phase-3-7.md): worker, adaptadores, SSE e módulos operacionais foram adicionados preservando estes limites de responsabilidade. Ativação externa e deploy continuam dependentes de configuração/homologação.
+
 Decisão em 07/11/2026: monorepo modular com processos separados para web, API e, futuramente, worker. O diretório pai contém outros projetos, sem repositório MarketPilot nem AGENTS.md aplicável. Nenhum projeto existente será alterado.
 
 ## Alternativas consideradas

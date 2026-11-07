@@ -1,0 +1,15 @@
+{
+  "name": "@marketpilot/worker",
+  "version": "0.3.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "node dist/index.mjs"
+  },
+  "dependencies": {
+    "bullmq": "^6.7.2",
+    "dotenv": "^17.2.0",
+    "ioredis": "^6.0.0"
+  }
+}

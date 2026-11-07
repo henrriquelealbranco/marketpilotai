@@ -1,12 +1,14 @@
 # MarketPilot AI
 
-Plataforma para operações de dropshipping nacional, desenvolvida por fases. **A entrega atual é a Fase 2: produtos, fornecedores e importação de catálogos, sobre a base da Fase 1.** Os módulos comerciais e as integrações oficiais ainda não executam operações externas.
+Plataforma SaaS de operações comerciais com catálogo rastreável, precificação determinística, agentes supervisionados e integrações oficiais configuráveis. Interface em português, Inter local e identidade roxa oficial, com temas escuro/claro.
 
-![Dashboard de demonstração](docs/screenshots/dashboard-dark.png)
+![Central de operações em demonstração](docs/screenshots/operations-dark.png)
 
-## Executar no Windows, Linux ou macOS
+As fases 1/2 foram preservadas. As fases 3–7 ampliam a aplicação existente. **O ambiente local não tem credenciais OpenAI/Mercado Livre/n8n, Redis nem Docker.** Análises por regras e módulos internos funcionam sem essas conexões. Adaptadores externos têm testes com transporte controlado; ativação e deploy remoto não foram realizados.
 
-Requisitos: Node.js **22.12+** (validado com 24), npm e uma porta livre para a web (3000) e API (4000). Não são necessárias chaves externas para esta fase.
+## Executar localmente
+
+Requisitos: Node.js 22.12+ (validado com Node 24), npm, portas 3000/4000 e PostgreSQL. O banco de desenvolvimento pode ser iniciado sem Docker:
 
 ```powershell
 npm ci
@@ -17,83 +19,72 @@ npm run db:migrate
 npm run dev
 ```
 
-No Linux/macOS, substitua `Copy-Item` por `cp`. `db:local` inicia um servidor **Prisma Postgres local de desenvolvimento**, sem Docker, com nome `marketpilot`. Confira a URL retornada pelo comando e ajuste `DATABASE_URL` se a porta padrão 51214 estiver ocupada. Dados locais são persistidos pela ferramenta Prisma, fora do diretório de código. Para parar: `npm run db:local:stop`.
+No Linux/macOS use `cp`. Ajuste `DATABASE_URL` conforme a porta retornada por `db:local`. O Prisma Postgres local mantém os dados fora do repositório. Para parar: `npm run db:local:stop`. Para PostgreSQL convencional configure a URL e aplique as migrações; `compose.dev.yaml` é opcional.
 
-- Demonstração: [localhost:3000/demo](http://localhost:3000/demo)
-- Criar conta local: [localhost:3000/signup](http://localhost:3000/signup)
-- Login: [localhost:3000/login](http://localhost:3000/login)
-- Documentação REST: [localhost:4000/docs](http://localhost:4000/docs)
-- Health do processo: `/health`; readiness com consulta ao banco: `/ready`.
+- [Apresentação pública](http://localhost:3000/)
+- [Demonstração isolada](http://localhost:3000/demo)
+- [Criar conta local](http://localhost:3000/signup) e [login](http://localhost:3000/login)
+- [OpenAPI interativa](http://localhost:4000/docs)
+- Saúde `/health`; banco `/ready`.
 
-Não há usuário ou senha padrão. Crie sua própria conta. Ela começa com indicadores zerados e um workspace isolado; os valores fictícios existem somente em `/demo`.
+Não existe conta padrão. O cadastro cria uma operação vazia e isolada. `ALLOW_REGISTRATION` permite fechar novos cadastros; produção começa fechada. Não copie dados da demonstração para uma operação comercial.
 
-Para um PostgreSQL convencional, configure `DATABASE_URL` e execute a mesma migração. O arquivo `compose.dev.yaml` oferece apenas um banco local isolado, se Docker já estiver instalado. Esta fase não instala Docker nem acessa a VPS.
+## Funcionalidades
 
-## Funcional nesta fase
+| Área                   | Comportamento                                                                                                                                                       |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Identidade e catálogo  | Sessão opaca HttpOnly, ADMIN/OPERATOR/VIEWER, workspace e auditoria; fornecedores/produtos, CSV/XML autorizado, versões, arquivo reversível e histórico de custos.  |
+| Precificação           | Cálculos inteiros, taxas informadas, equilíbrio, preço mínimo/recomendado, lucro, margem, ROI, sensibilidade e cotações persistidas.                                |
+| Agentes                | Sete especialidades, consultas restritas ao workspace. Regras ou OpenAI Responses configurado; histórico, evidências, revisão, duração, tokens e custos conhecidos. |
+| Central de operações   | Feed SSE persistido, agentes, decisões, aprovações vinculadas ao conteúdo/versão e histórico de workflows.                                                          |
+| Mercado                | Observações autorizadas, preços, atributos e fontes datadas; sem inventar demanda ou presumir busca geral do marketplace.                                           |
+| Anúncios               | Rascunhos, cotação válida, revisão e execução aprovada. OAuth, publicação/descrição e atualização de preço/estoque por adaptador oficial.                           |
+| Pedidos                | Registro manual e consulta autorizada, identificador único, custos conferidos/estimados, status e rastreamento; notificações e fila.                                |
+| Automações             | Dez workflows JSON, handler de erros, execução interna ou BullMQ, idempotência, backoff e agenda por workspace habilitado.                                          |
+| Analytics e assistente | Filtros 7/30/90, categorias/fornecedores, IA, CSV/PDF, histórico pessoal de perguntas e evidências.                                                                 |
+| Demonstração           | Catálogo/pedidos fictícios, simulação acionada pelo visitante, decisões/aprovações locais e navegação completa, sem chamadas privadas ou externas.                  |
 
-- Next.js App Router, React e TypeScript estrito; API Fastify separada.
-- Cadastro local habilitável, login/logout, scrypt, sessões opacas com expiração no PostgreSQL e cookie HttpOnly.
-- Isolamento por workspace, papéis ADMIN/OPERATOR/VIEWER e alteração de nome somente por administrador.
-- Auditoria persistente de acesso, configuração e alterações no catálogo.
-- Cadastro e edição de fornecedores e produtos, busca, filtros, paginação e arquivamento reversível.
-- Importação CSV/XML autorizada com prévia, limite de 500 registros, validação atômica e prevenção de reprocessamento.
-- Histórico de custo e estoque, rastreabilidade de origem e controle de versão para edições.
-- Dashboard com períodos de 7/30/90 dias, gráfico Recharts, ranking ordenável TanStack Table e exportação CSV identificada.
-- Tema escuro/claro, sidebar retrátil, navegação móvel, busca de páginas e atalho Ctrl/Cmd+K.
-- Demonstração explicitamente identificada, sem persistência comercial nem operações externas.
-- Navegação para as 18 áreas, com estado e fase prevista claramente indicados.
-- Estrutura do AI Operations Center: agentes aguardando, progresso zero, workflow estático e painéis vazios de atividades, decisões e aprovações.
-- Identidade oficial roxa, Inter empacotada localmente e ativos SVG para fundos claros/escuros, favicon e ícone.
+Pedidos importados sem custos completos **não são interpretados como lucro**. Lucro realizado exige entrega e custos confirmados. Custos OpenAI são estimados em USD quando tarifas são configuradas; valores desconhecidos são identificados. O score é triagem dos sinais disponíveis, não previsão de vendas.
 
-O centro de operações **não executa IA ou workflows nesta fase**. Produtos e fornecedores estão operacionais. Precificação, anúncios, pedidos e os demais módulos apresentam a etapa prevista. A landing page pública permanece na Fase 6; seus ativos de marca já estão disponíveis.
+## Arquitetura
 
-## Verificação
+```mermaid
+flowchart LR
+  Browser[Next.js / React] --> API[Fastify / REST / SSE]
+  API --> DB[(PostgreSQL / Prisma)]
+  API --> Queue[(Redis / BullMQ)]
+  Worker[Worker com HMAC] --> API
+  Queue --> Worker
+  N8N[n8n / agenda protegida] --> API
+  API --> OpenAI[OpenAI Responses]
+  API --> ML[Mercado Livre OAuth / REST]
+  Approval[Aprovação humana] --> API
+```
 
-Com PostgreSQL iniciado e migração aplicada:
+Monorepo npm: `apps/web`, `apps/api`, `apps/worker`, `packages/contracts` e `packages/database`. O browser nunca recebe chaves. O demo não executa chamadas externas. n8n indisponível não impede autenticação, catálogo, precificação ou análises internas.
+
+## Validação
+
+Com banco ativo e migrações aplicadas:
 
 ```powershell
-npm run lint
-npm run typecheck
-npm test
-npm run test:integration
-npm run build
-npx playwright install chromium
-npm run test:e2e
+npm run validate
+npm run format:check
+npm audit
 ```
 
-Os testes de integração usam dados únicos em `example.test` e removem apenas os workspaces criados pelo próprio teste. Os E2E criam uma conta local identificada por `e2e-...@example.test`. Use um banco de teste isolado para CI.
+`validate` gera Prisma, valida a estrutura da infraestrutura, executa lint, TypeScript, testes unitários/integração, builds API/worker/web e Playwright. Instale Chromium com `npx playwright install chromium` na primeira execução. Testes usam contas `example.test`; integração limpa seus workspaces e E2E deixa apenas dados locais de teste identificáveis.
 
-`npm run validate` executa geração do cliente, lint, tipos, testes, build e E2E em sequência. Não execute o build em paralelo com os E2E: a geração do cliente Prisma pode reiniciar a API em modo watch.
+Docker/Compose, imagem n8n e restauração exigem ensaio próprio antes de uso comercial. Validação estrutural e HTTP controlado não substituem esse ensaio nem a homologação das permissões da conta Mercado Livre.
 
-Builds: `apps/api/dist/index.mjs` e `apps/web/.next`. A API tem build ESM com esbuild; os contratos e cliente Prisma são incluídos no bundle, bibliotecas externas continuam dependências instaladas. A web oferece output standalone, mas empacotamento de produção e deploy ficam na Fase 7.
+## Documentação
 
-```powershell
-npm run start -w @marketpilot/api
-npm run start -w @marketpilot/web
-```
+- [Fases 3–7 e limites](docs/phase-3-7.md)
+- [Resultados da verificação](docs/verification.md)
+- [Integrações e segurança](docs/integrations.md)
+- [Coolify e backups](docs/deployment.md)
+- [Arquitetura](docs/architecture.md), [design system](docs/design-system.md)
+- [Fase 1](docs/phase-1.md), [Fase 2](docs/phase-2.md), [CSV/XML](docs/catalog-format.md)
+- [Workflows e importação](workflows/README.md)
 
-Esses comandos usam a `.env` local. Em produção, `APP_ORIGIN` deve ser HTTPS, cookies são Secure e `ALLOW_REGISTRATION` deve ser false. Não use Prisma Postgres local de desenvolvimento em produção.
-
-## Estrutura e próximos passos
-
-```text
-apps/web/               Interface Next.js e primitives no padrão shadcn/ui
-apps/api/               REST, sessão, autorização e agregação
-packages/contracts/     Contratos públicos Zod/TypeScript
-packages/database/      Prisma, schema e migrações PostgreSQL
-tests/                  Unitários, integração e E2E
-docs/                   Arquitetura, identidade, fases e screenshots
-```
-
-- [Arquitetura e limites](docs/architecture.md)
-- [Guia oficial da identidade](docs/design-system.md)
-- [Histórico da Fase 1](docs/phase-1.md)
-- [Estado da Fase 2 e preparação da Fase 3](docs/phase-2.md)
-- [Formato de catálogos CSV/XML e regras de importação](docs/catalog-format.md)
-- [Ativos da marca](apps/web/public/brand)
-
-Fase 2: produtos, fornecedores, histórico de catálogo e importação CSV/XML autorizada. Fase 3: precificação testada e agentes OpenAI. Fase 4: Redis/BullMQ, n8n e feed de eventos real. Fase 5: OAuth Mercado Livre, anúncios aprovados e pedidos. Fase 6: analytics, landing e demonstração expandida. Fase 7: segurança final, backups, Docker/Hostinger/Coolify e deploy isolado.
-
-## Limitações antes do lançamento público
-
-Cadastro aberto é uma opção explícita de desenvolvimento. Ainda faltam confirmação de e-mail, recuperação de senha, MFA, convites, retenção/expurgo de auditoria, gestão de usuários e procedimentos LGPD. O rate limit usa memória em uma réplica; Redis será exigido para múltiplas réplicas. Nenhuma credencial comercial é coletada nesta entrega. Segredos nunca devem ser adicionados a variáveis `NEXT_PUBLIC_*`.
+GitHub CI usa PostgreSQL isolado. Segredos, `.env`, backups, dados pessoais e cliente Prisma gerado não são versionados.

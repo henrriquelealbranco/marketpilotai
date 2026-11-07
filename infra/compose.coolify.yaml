@@ -1,0 +1,9 @@
+# Optional override: attach only the web to an existing proxy network.
+# Configure the HTTPS domain in Coolify for marketpilot-web:3000.
+services:
+  marketpilot-web:
+    networks: [backend, edge, proxy]
+networks:
+  proxy:
+    external: true
+    name: ${MARKETPILOT_PROXY_NETWORK:?Set the existing proxy network name}

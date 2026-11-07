@@ -1,0 +1,274 @@
+name: ${MARKETPILOT_PROJECT_NAME:-marketpilot}
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: '3'
+
+x-node: &node
+  restart: unless-stopped
+  init: true
+  security_opt: [no-new-privileges:true]
+  cap_drop: [ALL]
+  logging: *logging
+  stop_grace_period: 120s
+
+services:
+  marketpilot-web:
+    <<: *node
+    build:
+      context: .
+      dockerfile: infra/docker/web.Dockerfile
+      args:
+        API_INTERNAL_URL: http://marketpilot-api:4000
+    image: ${MARKETPILOT_PROJECT_NAME:-marketpilot}-web:${MARKETPILOT_VERSION:-local}
+    environment:
+      NODE_ENV: production
+      APP_ORIGIN: ${APP_ORIGIN:?Set an HTTPS APP_ORIGIN}
+      API_INTERNAL_URL: http://marketpilot-api:4000
+    ports: ['127.0.0.1:${MARKETPILOT_WEB_PORT:-3100}:3000']
+    networks: [edge, backend]
+    depends_on:
+      marketpilot-api: { condition: service_healthy }
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 45s
+      retries: 3
+    mem_limit: 512m
+    cpus: 0.75
+    pids_limit: 128
+
+  marketpilot-api:
+    <<: *node
+    build: { context: ., dockerfile: infra/docker/api.Dockerfile }
+    image: ${MARKETPILOT_PROJECT_NAME:-marketpilot}-api:${MARKETPILOT_VERSION:-local}
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: '4000'
+      APP_ORIGIN: ${APP_ORIGIN:?Set an HTTPS APP_ORIGIN}
+      DATABASE_URL: postgresql://marketpilot_app:${MARKETPILOT_DB_PASSWORD:?Set a URL-safe database password}@marketpilot-postgres:5432/marketpilot?connection_limit=5
+      REDIS_URL: redis://:${REDIS_PASSWORD:?Set a URL-safe Redis password}@marketpilot-redis:6379/0
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:?Set an independent random service key}
+      N8N_SERVICE_TOKEN: ${N8N_SERVICE_TOKEN:?Set an independent random n8n dispatch token}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?Set the application encryption key}
+      ALLOW_REGISTRATION: ${ALLOW_REGISTRATION:-false}
+      TRUST_PROXY: 'false'
+      SESSION_TTL_HOURS: '24'
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-}
+      OPENAI_INPUT_PRICE_PER_MILLION: ${OPENAI_INPUT_PRICE_PER_MILLION:-}
+      OPENAI_OUTPUT_PRICE_PER_MILLION: ${OPENAI_OUTPUT_PRICE_PER_MILLION:-}
+      AI_DAILY_TOKEN_LIMIT: ${AI_DAILY_TOKEN_LIMIT:-50000}
+      MERCADOLIVRE_CLIENT_ID: ${MERCADOLIVRE_CLIENT_ID:-}
+      MERCADOLIVRE_CLIENT_SECRET: ${MERCADOLIVRE_CLIENT_SECRET:-}
+      MERCADOLIVRE_REDIRECT_URI: ${MERCADOLIVRE_REDIRECT_URI:-}
+      MERCADOLIVRE_NOTIFICATION_TOKEN: ${MERCADOLIVRE_NOTIFICATION_TOKEN:-}
+      N8N_PUBLIC_URL: ${N8N_EDITOR_BASE_URL:-}
+      N8N_BASE_URL: http://marketpilot-n8n:5678
+      N8N_API_KEY: ${N8N_API_KEY:-}
+    expose: ['4000']
+    networks: [backend, egress]
+    depends_on:
+      marketpilot-postgres: { condition: service_healthy }
+      marketpilot-redis: { condition: service_healthy }
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:4000/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 20s
+      timeout: 6s
+      start_period: 30s
+      retries: 3
+    mem_limit: 512m
+    cpus: 0.75
+    pids_limit: 128
+
+  marketpilot-worker:
+    <<: *node
+    build: { context: ., dockerfile: infra/docker/worker.Dockerfile }
+    image: ${MARKETPILOT_PROJECT_NAME:-marketpilot}-worker:${MARKETPILOT_VERSION:-local}
+    environment:
+      NODE_ENV: production
+      APP_ORIGIN: ${APP_ORIGIN:?Set an HTTPS APP_ORIGIN}
+      API_INTERNAL_URL: http://marketpilot-api:4000
+      REDIS_URL: redis://:${REDIS_PASSWORD:?Set a URL-safe Redis password}@marketpilot-redis:6379/0
+      INTERNAL_SERVICE_KEY: ${INTERNAL_SERVICE_KEY:?Set an independent random service key}
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-2}
+      WORKER_JOB_TIMEOUT_MS: '60000'
+      WORKER_HEALTH_PORT: '4001'
+    expose: ['4001']
+    networks: [backend, egress]
+    depends_on:
+      marketpilot-api: { condition: service_healthy }
+      marketpilot-redis: { condition: service_healthy }
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:4001/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 20s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    mem_limit: 384m
+    cpus: 0.5
+    pids_limit: 96
+
+  marketpilot-postgres:
+    image: postgres:17-bookworm
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+    logging: *logging
+    environment:
+      POSTGRES_USER: marketpilot_bootstrap
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?Set an independent bootstrap password}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+      MARKETPILOT_DB_PASSWORD: ${MARKETPILOT_DB_PASSWORD:?Set a URL-safe database password}
+      N8N_DB_PASSWORD: ${N8N_DB_PASSWORD:?Set an independent n8n database password}
+    command:
+      [
+        postgres,
+        -c,
+        max_connections=60,
+        -c,
+        shared_buffers=128MB,
+        -c,
+        log_min_duration_statement=1000,
+      ]
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./infra/postgres/10-marketpilot-databases.sh:/docker-entrypoint-initdb.d/10-marketpilot-databases.sh:ro
+    networks: [backend]
+    healthcheck:
+      test:
+        [
+          CMD-SHELL,
+          'pg_isready -U marketpilot_bootstrap -d postgres && PGPASSWORD="$$MARKETPILOT_DB_PASSWORD" psql -h 127.0.0.1 -U marketpilot_app -d marketpilot -tAc "SELECT 1" >/dev/null && PGPASSWORD="$$N8N_DB_PASSWORD" psql -h 127.0.0.1 -U marketpilot_n8n -d marketpilot_n8n -tAc "SELECT 1" >/dev/null',
+        ]
+      interval: 10s
+      timeout: 5s
+      start_period: 30s
+      retries: 6
+    stop_grace_period: 60s
+    mem_limit: 768m
+    cpus: 1.0
+    pids_limit: 128
+
+  marketpilot-redis:
+    image: redis:7.4-bookworm
+    restart: unless-stopped
+    security_opt: [no-new-privileges:true]
+    logging: *logging
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set a URL-safe Redis password}
+    command:
+      [
+        sh,
+        -ec,
+        'exec redis-server --appendonly yes --appendfsync everysec --maxmemory 160mb --maxmemory-policy noeviction --requirepass "$$REDIS_PASSWORD"',
+      ]
+    volumes: [redis-data:/data]
+    networks: [backend]
+    healthcheck:
+      test:
+        [
+          CMD-SHELL,
+          'REDISCLI_AUTH="$$REDIS_PASSWORD" redis-cli --no-auth-warning ping | grep -q PONG',
+        ]
+      interval: 10s
+      timeout: 4s
+      retries: 5
+    stop_grace_period: 30s
+    mem_limit: 256m
+    cpus: 0.25
+    pids_limit: 64
+
+  marketpilot-n8n:
+    # Pin an exact tested version or digest. There is intentionally no latest fallback.
+    image: ${N8N_IMAGE:?Set docker.n8n.io/n8nio/n8n with an exact tested tag or digest}
+    restart: unless-stopped
+    init: true
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    logging: *logging
+    environment:
+      NODE_ENV: production
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: marketpilot-postgres
+      DB_POSTGRESDB_PORT: '5432'
+      DB_POSTGRESDB_DATABASE: marketpilot_n8n
+      DB_POSTGRESDB_USER: marketpilot_n8n
+      DB_POSTGRESDB_PASSWORD: ${N8N_DB_PASSWORD:?Set an independent n8n database password}
+      DB_POSTGRESDB_POOL_SIZE: '3'
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY:?Set a stable independent n8n encryption key}
+      N8N_HOST: ${N8N_HOST:?Set n8n HTTPS hostname}
+      N8N_PROTOCOL: https
+      N8N_EDITOR_BASE_URL: ${N8N_EDITOR_BASE_URL:?Set n8n HTTPS editor URL}
+      WEBHOOK_URL: ${N8N_EDITOR_BASE_URL:?Set n8n HTTPS editor URL}
+      N8N_PROXY_HOPS: '1'
+      N8N_SECURE_COOKIE: 'true'
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: 'true'
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: 'true'
+      N8N_BLOCK_FILE_ACCESS_TO_N8N_FILES: 'true'
+      N8N_DIAGNOSTICS_ENABLED: 'false'
+      N8N_PERSONALIZATION_ENABLED: 'false'
+      N8N_VERSION_NOTIFICATIONS_ENABLED: 'false'
+      N8N_PUBLIC_API_DISABLED: ${N8N_PUBLIC_API_DISABLED:-true}
+      N8N_CONCURRENCY_PRODUCTION_LIMIT: '2'
+      EXECUTIONS_MODE: regular
+      EXECUTIONS_DATA_PRUNE: 'true'
+      EXECUTIONS_DATA_MAX_AGE: '168'
+      EXECUTIONS_DATA_PRUNE_MAX_COUNT: '1000'
+      EXECUTIONS_DATA_SAVE_ON_ERROR: all
+      EXECUTIONS_DATA_SAVE_ON_SUCCESS: none
+      GENERIC_TIMEZONE: America/Sao_Paulo
+      TZ: America/Sao_Paulo
+    ports: ['127.0.0.1:${MARKETPILOT_N8N_PORT:-5679}:5678']
+    volumes: [n8n-data:/home/node/.n8n]
+    networks: [backend, egress]
+    depends_on:
+      marketpilot-postgres: { condition: service_healthy }
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:5678/healthz/readiness').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 4
+    stop_grace_period: 90s
+    mem_limit: 768m
+    cpus: 0.75
+    pids_limit: 128
+
+networks:
+  backend: { internal: true }
+  edge: {}
+  egress: {}
+
+volumes:
+  postgres-data: {}
+  redis-data: {}
+  n8n-data: {}

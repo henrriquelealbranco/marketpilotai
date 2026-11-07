@@ -1,4 +1,4 @@
-name: Phase 1 checks
+name: MarketPilot checks
 on: [push, pull_request]
 permissions:
   contents: read
@@ -33,6 +33,8 @@ jobs:
       - run: cp .env.example .env
       - run: npm run db:generate
       - run: npm run db:migrate
+      - run: npm run check:infra
+      - run: npm run format:check
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test

@@ -2,6 +2,9 @@ import { z } from 'zod';
 import pt from 'zod/v4/locales/pt.js';
 z.config(pt());
 export * from './catalog';
+export * from './pricing';
+export * from './operations';
+export * from './demo';
 
 export const loginSchema = z.object({
   email: z
@@ -48,10 +51,12 @@ export interface OrderFact {
   quantity: number;
   revenueCents: number;
   costCents: number;
+  costsKnown?: boolean;
   status: 'delivered' | 'shipping' | 'processing' | 'cancelled';
   supplier: string;
 }
 export interface Dashboard {
+  unknownCostOrders?: number;
   source: DataSource;
   asOf: string;
   days: Period;

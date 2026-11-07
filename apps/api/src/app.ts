@@ -4,6 +4,7 @@ import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
 import swagger from '@fastify/swagger';
 import swaggerUi from '@fastify/swagger-ui';
+import rawBody from 'fastify-raw-body';
 import { ZodError } from 'zod';
 import { database, type Database } from '@marketpilot/database';
 import {
@@ -11,13 +12,15 @@ import {
   loginSchema,
   registerSchema,
   workspaceSchema,
-  integrations,
 } from '@marketpilot/contracts';
 import { buildDashboard } from './dashboard.js';
 import { demoOrders } from './demo.js';
 import { hashPassword, verifyPassword, hashToken } from './crypto.js';
 import { HttpError, requireIdentity, issueSession, SESSION_COOKIE } from './auth.js';
 import { registerCatalogRoutes } from './catalog/routes.js';
+import { registerOperationRoutes } from './operations/routes.js';
+import { orderFacts } from './operations/store.js';
+import { IntegrationError } from './integrations/index.js';
 
 export interface AppOptions {
   db?: Database;
@@ -46,6 +49,13 @@ export async function buildApp(options: AppOptions = {}) {
         ? false
         : {
             level: 'info',
+            serializers: {
+              req: (request: { method?: string; url?: string; id?: string }) => ({
+                method: request.method,
+                url: request.url?.split('?')[0],
+                id: request.id,
+              }),
+            },
             redact: [
               'req.headers.cookie',
               'req.headers.authorization',
@@ -57,14 +67,38 @@ export async function buildApp(options: AppOptions = {}) {
           },
   });
   await app.register(cookie);
+  await app.register(rawBody, {
+    field: 'rawBody',
+    global: false,
+    encoding: 'utf8',
+    runFirst: true,
+  });
   await app.register(helmet);
-  await app.register(rateLimit, { max: options.rateLimitMax ?? 120, timeWindow: '1 minute' });
+  await app.register(rateLimit, {
+    max: options.rateLimitMax ?? 120,
+    timeWindow: '1 minute',
+    keyGenerator: async (request) => {
+      if (
+        request.cookies[SESSION_COOKIE] &&
+        request.url.startsWith('/v1/') &&
+        !request.url.startsWith('/v1/demo/')
+      ) {
+        try {
+          return `user:${(await requireIdentity(db, request)).user.id}`;
+        } catch {
+          /* Invalid sessions retain the IP limit; authorization still runs in private handlers. */
+        }
+      }
+      return request.ip;
+    },
+  });
   await app.register(swagger, {
     openapi: {
       info: {
         title: 'MarketPilot API',
-        description: 'Fase 2. Identidade, catálogo persistente e importação autorizada.',
-        version: '0.2.0',
+        description:
+          'Identidade, catálogo, finanças, agentes, aprovações e integrações autorizadas.',
+        version: '0.3.0',
       },
       components: {
         securitySchemes: { session: { type: 'apiKey', in: 'cookie', name: SESSION_COOKIE } },
@@ -76,6 +110,12 @@ export async function buildApp(options: AppOptions = {}) {
     reply.header('Cache-Control', 'no-store');
     if (
       ['POST', 'PATCH', 'PUT', 'DELETE'].includes(request.method) &&
+      ![
+        '/internal/jobs/run',
+        '/internal/workflows/dispatch',
+        '/internal/workflows/failure',
+        '/v1/webhooks/mercadolivre',
+      ].includes(request.url.split('?')[0]!) &&
       request.headers.origin !== origin
     )
       throw new HttpError(403, 'Origem da solicitação não autorizada.');
@@ -87,7 +127,13 @@ export async function buildApp(options: AppOptions = {}) {
         issues: error.issues.map((i) => ({ field: i.path.join('.'), message: i.message })),
       });
     if (error instanceof HttpError)
-      return reply.status(error.statusCode).send({ message: error.message });
+      return reply
+        .status(error.statusCode)
+        .send({ message: error.message, ...('code' in error ? { code: error.code } : {}) });
+    if (error instanceof IntegrationError)
+      return reply
+        .status(error.code === 'configuration_required' ? 409 : 502)
+        .send({ message: error.message, code: error.code, provider: error.provider });
     if (!(error instanceof Error))
       return reply.status(503).send({ message: 'Serviço temporariamente indisponível.' });
     if ('code' in error && error.code === 'P2002')
@@ -117,7 +163,7 @@ export async function buildApp(options: AppOptions = {}) {
   });
   app.get('/health', { schema: { tags: ['System'], summary: 'Saúde do processo' } }, async () => ({
     status: 'ok',
-    phase: 2,
+    phase: 7,
   }));
   app.get(
     '/ready',
@@ -267,22 +313,13 @@ export async function buildApp(options: AppOptions = {}) {
     '/v1/dashboard',
     { schema: { ...dashboardSchema, ...privateSchema } },
     async (request) => {
-      await requireIdentity(db, request);
-      return buildDashboard([], dashboardQuerySchema.parse(request.query).days, new Date(), 'real');
-    },
-  );
-  app.get(
-    '/v1/integrations',
-    {
-      schema: {
-        ...privateSchema,
-        tags: ['Workspace'],
-        summary: 'Integrações ainda não implementadas',
-      },
-    },
-    async (request) => {
-      await requireIdentity(db, request);
-      return { items: integrations };
+      const identity = await requireIdentity(db, request);
+      return buildDashboard(
+        await orderFacts(db, identity.workspace.id),
+        dashboardQuerySchema.parse(request.query).days,
+        new Date(),
+        'real',
+      );
     },
   );
   app.patch(
@@ -339,5 +376,6 @@ export async function buildApp(options: AppOptions = {}) {
     },
   );
   await registerCatalogRoutes(app, db);
+  await registerOperationRoutes(app, db);
   return app;
 }

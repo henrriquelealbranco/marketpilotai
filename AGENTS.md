@@ -4,7 +4,7 @@ Este é o repositório do MarketPilot AI. Não altere projetos no diretório pai
 
 - Leia README.md, docs/architecture.md e docs/phase-1.md antes de ampliar a implementação.
 - Identidade oficial: docs/design-system.md e docs/brand/styleboard.png. Inter; #7C3AED, #A855F7, #C084FC, #0B0B12, #181825, #F5F5FA. Componentes usam tokens globais, não uma paleta paralela.
-- Preserve o escopo por fases. A entrega atual é a Fase 2. Leia também docs/phase-2.md e docs/catalog-format.md. Execuções de agentes, n8n e operações Mercado Livre não podem ser apresentadas como implementadas.
+- Preserve as fases 1/2. A continuação autorizada implementa as fases 3–7; leia docs/phase-3-7.md, docs/integrations.md e docs/deployment.md. Diferencie implementação local, teste com transporte controlado e ativação externa; não apresente credenciais pendentes ou deploy preparado como serviços ativos.
 - `/demo` e `/v1/demo/*` nunca escrevem em dados comerciais nem chamam serviços externos. Identificação Demonstração permanente.
 - APIs privadas exigem sessão válida e workspace do usuário; não aceite workspaceId fornecido pelo navegador como autorização.
 - Não versione .env, tokens, senhas, dados pessoais reais ou cliente Prisma gerado.

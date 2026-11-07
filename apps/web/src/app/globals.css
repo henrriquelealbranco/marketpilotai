@@ -2611,3 +2611,38 @@ input:disabled {
     transition-duration: 0.01ms !important;
   }
 }
+@media print {
+  .sidebar,
+  .topbar,
+  .app-footer,
+  .logout-float,
+  .skip-link,
+  .control-actions,
+  .back-link {
+    display: none !important;
+  }
+  .app-body {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+  .main-content {
+    padding: 12px !important;
+  }
+  .demo-banner {
+    display: flex !important;
+    position: static !important;
+    color: #21182f !important;
+    background: #f5f5fa !important;
+    border: 1px solid #7c3aed !important;
+  }
+  .control-panel,
+  .control-stat {
+    break-inside: avoid;
+  }
+  .control-table-scroll {
+    overflow: visible;
+  }
+  .control-chart {
+    height: 240px;
+  }
+}

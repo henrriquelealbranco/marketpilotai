@@ -24,6 +24,20 @@ model Workspace {
   products Product[]
   catalogImports CatalogImport[]
   costSnapshots CostSnapshot[]
+  pricingQuotes PricingQuote[]
+  agentRuns AgentRun[]
+  decisions AgentDecision[]
+  approvals Approval[]
+  listings Listing[]
+  orders MarketplaceOrder[]
+  observations MarketObservation[]
+  events OperationEvent[]
+  alerts Alert[]
+  automationConfigs AutomationConfig[]
+  workflowExecutions WorkflowExecution[]
+  connections IntegrationConnection[]
+  oauthStates OAuthState[]
+  conversations Conversation[]
 }
 
 model User {
@@ -119,6 +133,8 @@ model Product {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   history CostSnapshot[]
+  quotes PricingQuote[]
+  listings Listing[]
   @@unique([workspaceId, supplierId, sku])
   @@unique([id, workspaceId])
   @@index([workspaceId, status, updatedAt])
@@ -156,4 +172,226 @@ model CostSnapshot {
   sourceUrl String?
   createdAt DateTime @default(now())
   @@index([workspaceId, productId, createdAt])
+}
+
+model PricingQuote {
+  id String @id @default(uuid())
+  workspaceId String
+  workspace Workspace @relation(fields:[workspaceId],references:[id],onDelete:Cascade)
+  productId String
+  product Product @relation(fields:[productId,workspaceId],references:[id,workspaceId],onDelete:Cascade)
+  actorId String
+  inputJson Json
+  resultJson Json
+  createdAt DateTime @default(now())
+  @@index([workspaceId,productId,createdAt])
+}
+model AgentRun {
+  id String @id @default(uuid())
+  workspaceId String
+  workspace Workspace @relation(fields:[workspaceId],references:[id],onDelete:Cascade)
+  agent String
+  provider String @default("rules")
+  status String @default("QUEUED")
+  actorId String
+  productId String?
+  inputJson Json
+  outputJson Json?
+  model String?
+  responseId String?
+  inputTokens Int @default(0)
+  outputTokens Int @default(0)
+  estimatedCostMicrosUsd Int?
+  errorCode String?
+  startedAt DateTime?
+  completedAt DateTime?
+  durationMs Int?
+  createdAt DateTime @default(now())
+  decisions AgentDecision[]
+  @@unique([id,workspaceId])
+  @@index([workspaceId,createdAt])
+}
+model AgentDecision {
+  id String @id @default(uuid())
+  workspaceId String
+  workspace Workspace @relation(fields:[workspaceId],references:[id],onDelete:Cascade)
+  runId String
+  run AgentRun @relation(fields:[runId,workspaceId],references:[id,workspaceId],onDelete:Cascade)
+  productId String?
+  recommendation String
+  evidenceJson Json
+  score Int?
+  reviewStatus String @default("PENDING")
+  reviewerId String?
+  reviewedAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([workspaceId,createdAt])
+}
+model Approval {
+  id String @id @default(uuid())
+  workspaceId String
+  workspace Workspace @relation(fields:[workspaceId],references:[id],onDelete:Cascade)
+  kind String
+  subjectId String?
+  title String
+  payloadJson Json
+  payloadHash String
+  status String @default("PENDING")
+  requestedById String
+  approvedById String?
+  approvedAt DateTime?
+  reason String?
+  resultJson Json?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([workspaceId,status,createdAt])
+}
+model Listing {
+  id String @id @default(uuid())
+  workspaceId String
+  workspace Workspace @relation(fields:[workspaceId],references:[id],onDelete:Cascade)
+  productId String
+  product Product @relation(fields:[productId,workspaceId],references:[id,workspaceId],onDelete:Cascade)
+  externalId String?
+  title String
+  description String @default("")
+  priceCents Int
+  stock Int
+  payloadJson Json
+  status String @default("DRAFT")
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([workspaceId,externalId])
+  @@index([workspaceId,status])
+}
+model MarketplaceOrder {
+  id String @id @default(uuid())
+  workspaceId String
+  workspace Workspace @relation(fields:[workspaceId],references:[id],onDelete:Cascade)
+  externalId String
+  source String @default("MANUAL")
+  status String @default("processing")
+  currency String @default("BRL")
+  amountCents Int
+  costCents Int
+  costsConfirmed Boolean @default(false)
+  productId String?
+  productName String
+  category String @default("Sem categoria")
+  supplierName String @default("Não vinculado")
+  buyerAlias String?
+  quantity Int @default(1)
+  linesJson Json
+  tracking String?
+  deadline DateTime?
+  orderedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([workspaceId,externalId])
+  @@index([workspaceId,orderedAt])
+}
+model MarketObservation {
+  id String @id @default(uuid())
+  workspaceId String
+  workspace Workspace @relation(fields:[workspaceId],references:[id],onDelete:Cascade)
+  productId String?
+  itemId String?
+  title String
+  priceCents Int
+  sourceUrl String
+  source String @default("MANUAL_AUTHORIZED")
+  attributesJson Json
+  observedAt DateTime @default(now())
+  @@index([workspaceId,productId,observedAt])
+}
+model OperationEvent {
+  id Int @id @default(autoincrement())
+  workspaceId String
+  workspace Workspace @relation(fields:[workspaceId],references:[id],onDelete:Cascade)
+  origin String
+  category String
+  message String
+  detailJson Json?
+  createdAt DateTime @default(now())
+  @@index([workspaceId,id])
+}
+model Alert {
+  id String @id @default(uuid())
+  workspaceId String
+  workspace Workspace @relation(fields:[workspaceId],references:[id],onDelete:Cascade)
+  key String
+  severity String
+  title String
+  message String
+  link String?
+  status String @default("OPEN")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([workspaceId,key])
+  @@index([workspaceId,status])
+}
+model AutomationConfig {
+  id String @id @default(uuid())
+  workspaceId String
+  workspace Workspace @relation(fields:[workspaceId],references:[id],onDelete:Cascade)
+  workflowKey String
+  enabled Boolean @default(false)
+  updatedAt DateTime @updatedAt
+  @@unique([workspaceId,workflowKey])
+}
+model WorkflowExecution {
+  id String @id @default(uuid())
+  workspaceId String
+  workspace Workspace @relation(fields:[workspaceId],references:[id],onDelete:Cascade)
+  workflowKey String
+  idempotencyKey String
+  source String @default("internal")
+  status String @default("QUEUED")
+  resultJson Json?
+  errorCode String?
+  startedAt DateTime?
+  completedAt DateTime?
+  durationMs Int?
+  externalExecutionId String?
+  createdAt DateTime @default(now())
+  @@unique([workspaceId,idempotencyKey])
+  @@index([workspaceId,createdAt])
+}
+model IntegrationConnection {
+  id String @id @default(uuid())
+  workspaceId String
+  workspace Workspace @relation(fields:[workspaceId],references:[id],onDelete:Cascade)
+  provider String
+  status String @default("PENDING")
+  encryptedAccessToken String?
+  encryptedRefreshToken String?
+  expiresAt DateTime?
+  metadataJson Json
+  updatedAt DateTime @updatedAt
+  @@unique([workspaceId,provider])
+}
+model OAuthState {
+  id String @id @default(uuid())
+  workspaceId String
+  workspace Workspace @relation(fields:[workspaceId],references:[id],onDelete:Cascade)
+  userId String
+  stateHash String @unique
+  verifierEncrypted String
+  expiresAt DateTime
+  consumedAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([workspaceId,expiresAt])
+}
+model Conversation {
+  id String @id @default(uuid())
+  workspaceId String
+  workspace Workspace @relation(fields:[workspaceId],references:[id],onDelete:Cascade)
+  actorId String
+  question String
+  answer String
+  evidenceJson Json
+  provider String
+  createdAt DateTime @default(now())
+  @@index([workspaceId,actorId,createdAt])
 }

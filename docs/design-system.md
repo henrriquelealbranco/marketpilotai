@@ -39,3 +39,7 @@ Sidebar escura, ativo roxo, bordas discretas, superfícies em camadas e ilumina�
 AI Operations Center apresenta agentes planejados, progresso não iniciado e workflow estático. Painéis de feed, decisões e aprovações só recebem eventos reais quando suas integrações forem implementadas. Não há animação de execução sem processamento verdadeiro.
 
 Layout responsivo: sidebar recolhível, drawer móvel e conteúdo em colunas que se reorganizam. A demonstração mantém identificação visível em todas as páginas. A landing completa fica na Fase 6 e reutilizará estes ativos e tokens.
+
+## Relatórios
+
+A API incorpora Inter Regular em TTF nos PDFs, com a licença SIL OFL no diretório de fontes. A instância deriva do Inter local da web; não depende de uma requisição de fonte externa. Claro/escuro usam os tokens correspondentes para manter contraste; capturas atuais estão em `docs/screenshots`.

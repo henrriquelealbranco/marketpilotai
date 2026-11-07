@@ -25,7 +25,14 @@ import {
   CircleHelp,
   Radar,
 } from 'lucide-react';
-import type { Dashboard as DashboardData, Period, CatalogSummary } from '@marketpilot/contracts';
+import type {
+  Dashboard as DashboardData,
+  Period,
+  CatalogSummary,
+  AnalyticsReport,
+  AlertRow,
+} from '@marketpilot/contracts';
+import { useOperations } from './operations/operations-workspace';
 import { api, money, number, percent, cn } from '@/lib/utils';
 import { Button } from './ui/button';
 import { RevenueChart } from './revenue-chart';
@@ -35,6 +42,18 @@ import { initialDemoCatalog } from './catalog/demo-data';
 export function Dashboard({ demo }: { demo: boolean }) {
   const [period, setPeriod] = useState<Period>(30);
   const [exported, setExported] = useState(false);
+  const operations = useOperations(demo);
+  const stats = useQuery({
+    queryKey: ['analytics', false, period],
+    queryFn: () => api<AnalyticsReport>(`/v1/analytics?days=${period}`),
+    enabled: !demo,
+    refetchInterval: 30000,
+  });
+  const alerts = useQuery({
+    queryKey: ['alerts', false],
+    queryFn: () => api<{ items: AlertRow[] }>('/v1/alerts'),
+    enabled: !demo,
+  });
   const base = demo ? '/demo' : '/app';
   const { data: realCatalog } = useQuery({
     queryKey: ['catalog', 'summary'],
@@ -295,23 +314,25 @@ export function Dashboard({ demo }: { demo: boolean }) {
             <div>
               <span>
                 <Bot size={16} />
-                Agentes planejados
+                Agentes disponíveis
               </span>
               <strong>07</strong>
             </div>
             <div>
               <span>
                 <Plug size={16} />
-                Integrações pendentes
+                Serviços configurados
               </span>
-              <strong>04</strong>
+              <strong>
+                {Object.values(operations.data?.configuration ?? {}).filter(Boolean).length}
+              </strong>
             </div>
             <div>
               <span>
                 <CircleCheck size={16} />
-                Execuções reais
+                Análises registradas
               </span>
-              <strong>00</strong>
+              <strong>{number(operations.data?.counts.runs ?? 0)}</strong>
             </div>
           </div>
           <div className="intelligence-callout">
@@ -320,8 +341,8 @@ export function Dashboard({ demo }: { demo: boolean }) {
             </span>
             <p>
               {demo
-                ? 'Explore a estrutura do centro de operações. Agentes e workflows entram nas próximas fases.'
-                : 'As análises de IA entram nas próximas fases, a partir do seu catálogo autorizado.'}
+                ? 'Explore agentes, decisões e aprovações simuladas no modo apresentação.'
+                : 'Execute análises com regras ou OpenAI configurado, a partir do seu catálogo autorizado.'}
             </p>
           </div>
           <Link className="intelligence-link" href={`${base}/operations`}>
@@ -390,11 +411,38 @@ export function Dashboard({ demo }: { demo: boolean }) {
             value: activeProducts === undefined ? '—' : number(activeProducts),
             detail: demo ? 'Catálogo demonstrativo' : 'Cadastrados no workspace',
           },
-          { label: 'Produtos monitorados', value: '—', detail: 'Monitoramento pendente' },
-          { label: 'Oportunidades', value: '—', detail: 'Análises não iniciadas' },
-          { label: 'Automações executadas', value: '0', detail: 'Nenhuma execução' },
-          { label: 'Alertas críticos', value: '—', detail: 'Monitoramento pendente' },
-          { label: 'Custos de IA', value: money(0), detail: 'Nenhuma chamada realizada' },
+          {
+            label: 'Produtos analisados',
+            value: number(
+              new Set(operations.data?.decisions.map((d) => d.productId).filter(Boolean)).size,
+            ),
+            detail: 'No recorte de decisões',
+          },
+          {
+            label: 'Recomendações',
+            value: number(operations.data?.decisions.length ?? 0),
+            detail: 'Histórico recente',
+          },
+          {
+            label: 'Automações executadas',
+            value: number(
+              stats.data?.workflowExecutions ?? operations.data?.executions.length ?? 0,
+            ),
+            detail: demo ? 'Demonstração' : 'No período selecionado',
+          },
+          {
+            label: 'Alertas críticos',
+            value: number(
+              alerts.data?.items.filter((a) => a.status === 'OPEN' && a.severity === 'critical')
+                .length ?? 0,
+            ),
+            detail: 'Entre alertas registrados',
+          },
+          {
+            label: 'Custo conhecido de IA',
+            value: `US$ ${((stats.data?.ai.knownCostMicrosUsd ?? 0) / 1000000).toFixed(4)}`,
+            detail: `${stats.data?.ai.unknownCostRuns ?? 0} execuções com tarifa desconhecida`,
+          },
         ].map((item) => (
           <div key={item.label}>
             <span>{item.label}</span>
@@ -404,6 +452,12 @@ export function Dashboard({ demo }: { demo: boolean }) {
         ))}
       </section>
       <div className="data-footnote">
+        {!!data?.unknownCostOrders && (
+          <span>
+            {data.unknownCostOrders} pedidos com custos ausentes: lucro parcial, excluindo esses
+            pedidos.
+          </span>
+        )}
         <span>
           <span className="status-dot" />
           {demo

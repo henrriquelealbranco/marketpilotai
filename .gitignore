@@ -12,3 +12,8 @@ packages/database/src/generated/
 *.tsbuildinfo
 .local/
 **/next-env.d.ts
+
+!.env.production.example
+.backups/
+*.dump
+*.dump.sha256

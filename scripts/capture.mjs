@@ -17,7 +17,19 @@ console.log(
 );
 await page.goto('http://localhost:3000/demo/operations');
 await page.waitForLoadState('networkidle');
+await page.getByRole('button', { name: 'Simular análise', exact: true }).click();
 await page.screenshot({ path: 'docs/screenshots/operations-dark.png', fullPage: true });
+await mkdir('apps/web/public/screenshots', { recursive: true });
+await page.screenshot({
+  path: 'apps/web/public/screenshots/operations-dark-v03.png',
+  fullPage: false,
+});
+await page.getByRole('button', { name: 'Alternar tema' }).click();
+await page.screenshot({ path: 'docs/screenshots/operations-light.png', fullPage: true });
+await page.setViewportSize({ width: 390, height: 844 });
+await page.screenshot({ path: 'docs/screenshots/operations-mobile.png', fullPage: true });
+await page.setViewportSize({ width: 1440, height: 1050 });
+await page.getByRole('button', { name: 'Alternar tema' }).click();
 await page.goto('http://localhost:3000/demo/products');
 await page.getByText('Fone Bluetooth Wave Pro', { exact: true }).waitFor();
 await page.screenshot({ path: 'docs/screenshots/products-dark.png', fullPage: true });

@@ -1,0 +1,372 @@
+{
+  "name": "MarketPilot / margin-alerts",
+  "active": false,
+  "nodes": [
+    {
+      "id": "4aa3bfa5-6516-4a1b-8bb9-a8efcc26230f",
+      "name": "Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [0, 0],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 35 */2 * * *"
+            }
+          ]
+        }
+      },
+      "notes": "Identifica margem abaixo das regras e cria alertas internos."
+    },
+    {
+      "id": "e3f9df1e-0889-4e84-8c9a-cb05b67deba1",
+      "name": "Validate configuration",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [240, 0],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "0205dcfc-8bb1-49e4-8234-698dafdc5dcd",
+              "leftValue": "={{ typeof 'http://marketpilot-api:4000' === 'string' && /^https?:\\/\\/[A-Za-z0-9.-]+(?::[0-9]+)?$/.test('http://marketpilot-api:4000') && /^[A-Za-z0-9_-]{1,128}$/.test(String($execution.id)) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "82eab0a4-40c7-4ab8-8b48-475d133bfc02",
+      "name": "Invalid configuration",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [480, 240],
+      "parameters": {
+        "errorType": "errorMessage",
+        "errorMessage": "marketpilot_configuration_required: check the internal API origin and select the protected Header Auth credential on every HTTP node"
+      }
+    },
+    {
+      "id": "de95dee0-0779-49e3-81c4-80f2b245511c",
+      "name": "Dispatch attempt 1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [480, -80],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'http://marketpilot-api:4000' + '/internal/workflows/dispatch' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ workflowKey: 'margin-alerts', source: 'n8n', executionId: String($execution.id), idempotencyKey: 'n8n-margin-alerts-' + $execution.id, scheduledAt: $('Schedule').first().json.timestamp }) }}",
+        "options": {
+          "timeout": 30000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "notes": "Select the Header Auth credential named MarketPilot Internal API. Authorization header and bearer token belong only in that credential.",
+      "notesInFlow": true,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "2545ff6c-128d-49a7-8d16-3e7d1e1bf18c",
+      "name": "Backoff 5 seconds",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [720, 80],
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": 5,
+        "unit": "seconds"
+      }
+    },
+    {
+      "id": "719a128e-da80-41e6-8a49-59f86e9bfd9a",
+      "name": "Dispatch attempt 2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [960, 80],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'http://marketpilot-api:4000' + '/internal/workflows/dispatch' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ workflowKey: 'margin-alerts', source: 'n8n', executionId: String($execution.id), idempotencyKey: 'n8n-margin-alerts-' + $execution.id, scheduledAt: $('Schedule').first().json.timestamp }) }}",
+        "options": {
+          "timeout": 30000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "notes": "Select the Header Auth credential named MarketPilot Internal API. Authorization header and bearer token belong only in that credential.",
+      "notesInFlow": true,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "3b8ccbe4-a9aa-4fa3-8b51-f96b467d8d37",
+      "name": "Backoff 10 seconds",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1200, 240],
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": 10,
+        "unit": "seconds"
+      }
+    },
+    {
+      "id": "3ee7afbb-0287-4e19-8840-6c54c8fe9564",
+      "name": "Dispatch attempt 3",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [1440, 240],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'http://marketpilot-api:4000' + '/internal/workflows/dispatch' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ workflowKey: 'margin-alerts', source: 'n8n', executionId: String($execution.id), idempotencyKey: 'n8n-margin-alerts-' + $execution.id, scheduledAt: $('Schedule').first().json.timestamp }) }}",
+        "options": {
+          "timeout": 30000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "notes": "Select the Header Auth credential named MarketPilot Internal API. Authorization header and bearer token belong only in that credential.",
+      "notesInFlow": true,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "0f448fe1-ea9a-4849-801c-94eebf3d31d5",
+      "name": "Persist failure and notify",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [1680, 400],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'http://marketpilot-api:4000' + '/internal/workflows/failure' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ workflowKey: 'margin-alerts', source: 'n8n', executionId: String($execution.id), idempotencyKey: 'n8n-failure-margin-alerts-' + $execution.id, code: 'workflow_dispatch_failed', failedAt: $now.toISO() }) }}",
+        "options": {
+          "timeout": 30000,
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "notes": "Select the Header Auth credential named MarketPilot Internal API. Authorization header and bearer token belong only in that credential.",
+      "notesInFlow": true,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 1000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "id": "b47f716b-1cdd-4093-8cc5-0bf90a258a09",
+      "name": "Failed execution",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [1920, 400],
+      "parameters": {
+        "errorType": "errorMessage",
+        "errorMessage": "marketpilot_dispatch_failed: retries exhausted; inspect the persisted execution and internal notifications"
+      }
+    }
+  ],
+  "connections": {
+    "Schedule": {
+      "main": [
+        [
+          {
+            "node": "Validate configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate configuration": {
+      "main": [
+        [
+          {
+            "node": "Dispatch attempt 1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Invalid configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dispatch attempt 1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Backoff 5 seconds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Backoff 5 seconds": {
+      "main": [
+        [
+          {
+            "node": "Dispatch attempt 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dispatch attempt 2": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Backoff 10 seconds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Backoff 10 seconds": {
+      "main": [
+        [
+          {
+            "node": "Dispatch attempt 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dispatch attempt 3": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Persist failure and notify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Persist failure and notify": {
+      "main": [
+        [
+          {
+            "node": "Failed execution",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Failed execution",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo",
+    "executionTimeout": 300,
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "none",
+    "saveManualExecutions": false
+  },
+  "pinData": {},
+  "tags": [],
+  "meta": {
+    "marketpilot": {
+      "workflowKey": "margin-alerts",
+      "contractVersion": 1,
+      "description": "Identifica margem abaixo das regras e cria alertas internos.",
+      "requiresCredential": "MarketPilot Internal API",
+      "internalApiOrigin": "http://marketpilot-api:4000",
+      "externalActions": "Approval enforced by API; this workflow never publishes, purchases, pays or cancels."
+    }
+  }
+}

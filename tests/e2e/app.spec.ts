@@ -53,9 +53,8 @@ test('central informa ausência de execuções, busca páginas e exporta dados i
 }) => {
   await page.goto('/demo/operations');
   await expect(page.getByRole('progressbar')).toHaveCount(7);
-  await expect(
-    page.getByText('Não há processamento de IA em execução.', { exact: false }),
-  ).toBeVisible();
+  await expect(page.getByText('Apresentação interativa', { exact: false })).toBeVisible();
+  await page.getByRole('button', { name: 'Simular análise', exact: true }).click();
   await page.getByRole('tab', { name: 'Agentes' }).focus();
   await page.keyboard.press('ArrowRight');
   await expect(page.getByRole('tab', { name: 'Atividades' })).toHaveAttribute(
@@ -63,9 +62,9 @@ test('central informa ausência de execuções, busca páginas e exporta dados i
     'true',
   );
   await page.getByRole('tab', { name: 'Decisões' }).click();
-  await expect(page.getByRole('heading', { name: 'Nenhuma decisão registrada' })).toBeVisible();
+  await expect(page.getByText(/Potencial observado/)).toBeVisible();
   await page.getByRole('tab', { name: 'Aprovações' }).click();
-  await expect(page.getByRole('heading', { name: 'Nenhuma aprovação pendente' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Aprovar ação', exact: true })).toBeVisible();
   await page.keyboard.press('Control+k');
   await page.getByRole('textbox', { name: 'Buscar página' }).fill('precificação');
   await page

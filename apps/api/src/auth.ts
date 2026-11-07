@@ -12,7 +12,17 @@ export class HttpError extends Error {
   }
 }
 export const SESSION_COOKIE = 'mp_session';
-export async function requireIdentity(db: Database, request: FastifyRequest): Promise<Identity> {
+declare module 'fastify' {
+  interface FastifyRequest {
+    marketpilotIdentity?: Identity;
+  }
+}
+export async function requireIdentity(
+  db: Database,
+  request: FastifyRequest,
+  fresh = false,
+): Promise<Identity> {
+  if (!fresh && request.marketpilotIdentity) return request.marketpilotIdentity;
   const token = request.cookies[SESSION_COOKIE];
   if (!token || token.length > 128) throw new HttpError(401, 'Entre na sua conta para continuar.');
   const session = await db.session.findUnique({
@@ -22,7 +32,7 @@ export async function requireIdentity(db: Database, request: FastifyRequest): Pr
   if (!session || session.expiresAt <= new Date())
     throw new HttpError(401, 'Sua sessão expirou. Entre novamente.');
   const { user } = session;
-  return {
+  const identity: Identity = {
     user: { id: user.id, name: user.name, email: user.email, role: user.role },
     workspace: {
       id: user.workspace.id,
@@ -30,6 +40,8 @@ export async function requireIdentity(db: Database, request: FastifyRequest): Pr
       timezone: user.workspace.timezone,
     },
   };
+  request.marketpilotIdentity = identity;
+  return identity;
 }
 export async function issueSession(
   db: Database,

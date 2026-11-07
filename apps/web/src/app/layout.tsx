@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import '@fontsource-variable/inter';
 import './globals.css';
 import '@/components/catalog/catalog.css';
+import '@/components/operations/operations.css';
 import { Providers } from '@/components/providers';
 export const metadata: Metadata = {
   title: {
