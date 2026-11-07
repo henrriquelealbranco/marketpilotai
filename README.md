@@ -1,6 +1,6 @@
 # MarketPilot AI
 
-Plataforma para operações de dropshipping nacional, desenvolvida por fases. **A entrega atual é a Fase 1: fundação, autenticação e dashboard.** Os módulos comerciais e as integrações oficiais ainda não executam operações externas.
+Plataforma para operações de dropshipping nacional, desenvolvida por fases. **A entrega atual é a Fase 2: produtos, fornecedores e importação de catálogos, sobre a base da Fase 1.** Os módulos comerciais e as integrações oficiais ainda não executam operações externas.
 
 ![Dashboard de demonstração](docs/screenshots/dashboard-dark.png)
 
@@ -34,7 +34,10 @@ Para um PostgreSQL convencional, configure `DATABASE_URL` e execute a mesma migr
 - Next.js App Router, React e TypeScript estrito; API Fastify separada.
 - Cadastro local habilitável, login/logout, scrypt, sessões opacas com expiração no PostgreSQL e cookie HttpOnly.
 - Isolamento por workspace, papéis ADMIN/OPERATOR/VIEWER e alteração de nome somente por administrador.
-- Auditoria persistente de cadastro, acesso, logout e configuração.
+- Auditoria persistente de acesso, configuração e alterações no catálogo.
+- Cadastro e edição de fornecedores e produtos, busca, filtros, paginação e arquivamento reversível.
+- Importação CSV/XML autorizada com prévia, limite de 500 registros, validação atômica e prevenção de reprocessamento.
+- Histórico de custo e estoque, rastreabilidade de origem e controle de versão para edições.
 - Dashboard com períodos de 7/30/90 dias, gráfico Recharts, ranking ordenável TanStack Table e exportação CSV identificada.
 - Tema escuro/claro, sidebar retrátil, navegação móvel, busca de páginas e atalho Ctrl/Cmd+K.
 - Demonstração explicitamente identificada, sem persistência comercial nem operações externas.
@@ -42,7 +45,7 @@ Para um PostgreSQL convencional, configure `DATABASE_URL` e execute a mesma migr
 - Estrutura do AI Operations Center: agentes aguardando, progresso zero, workflow estático e painéis vazios de atividades, decisões e aprovações.
 - Identidade oficial roxa, Inter empacotada localmente e ativos SVG para fundos claros/escuros, favicon e ícone.
 
-O centro de operações **não executa IA ou workflows nesta fase**. As outras páginas comerciais apresentam sua etapa de implementação; não são módulos operacionais completos. A landing page pública permanece na Fase 6; seus ativos de marca já estão disponíveis.
+O centro de operações **não executa IA ou workflows nesta fase**. Produtos e fornecedores estão operacionais. Precificação, anúncios, pedidos e os demais módulos apresentam a etapa prevista. A landing page pública permanece na Fase 6; seus ativos de marca já estão disponíveis.
 
 ## Verificação
 
@@ -84,7 +87,9 @@ docs/                   Arquitetura, identidade, fases e screenshots
 
 - [Arquitetura e limites](docs/architecture.md)
 - [Guia oficial da identidade](docs/design-system.md)
-- [Estado da Fase 1 e preparação da Fase 2](docs/phase-1.md)
+- [Histórico da Fase 1](docs/phase-1.md)
+- [Estado da Fase 2 e preparação da Fase 3](docs/phase-2.md)
+- [Formato de catálogos CSV/XML e regras de importação](docs/catalog-format.md)
 - [Ativos da marca](apps/web/public/brand)
 
 Fase 2: produtos, fornecedores, histórico de catálogo e importação CSV/XML autorizada. Fase 3: precificação testada e agentes OpenAI. Fase 4: Redis/BullMQ, n8n e feed de eventos real. Fase 5: OAuth Mercado Livre, anúncios aprovados e pedidos. Fase 6: analytics, landing e demonstração expandida. Fase 7: segurança final, backups, Docker/Hostinger/Coolify e deploy isolado.

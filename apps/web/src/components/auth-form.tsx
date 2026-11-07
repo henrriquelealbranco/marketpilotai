@@ -205,7 +205,7 @@ export function AuthForm({ signup = false }: { signup?: boolean }) {
           </div>
         </div>
         <footer className="auth-legal">
-          Versão inicial · Fase 1 de 7<span>Português (Brasil)</span>
+          Em desenvolvimento · Fase 2 de 7<span>Português (Brasil)</span>
         </footer>
       </div>
     </div>

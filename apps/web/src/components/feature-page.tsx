@@ -33,6 +33,7 @@ import {
 import { pages } from '@/lib/navigation';
 import { api, cn } from '@/lib/utils';
 import { Button } from './ui/button';
+import { CatalogWorkspace } from './catalog/catalog-workspace';
 
 const descriptions: Record<string, string> = {
   hunter: 'Descubra oportunidades com base em catálogos autorizados, custos e disponibilidade.',
@@ -47,7 +48,24 @@ const descriptions: Record<string, string> = {
   alerts: 'Acompanhe desvios de margem, disponibilidade e falhas operacionais.',
   assistant: 'Converse com os dados da sua operação e consulte as fontes das respostas.',
 };
-export function FeaturePage({ slug, demo }: { slug: string; demo: boolean }) {
+export function FeaturePage({
+  slug,
+  demo,
+  supplierFilter,
+}: {
+  slug: string;
+  demo: boolean;
+  supplierFilter?: string;
+}) {
+  if (slug === 'products' || slug === 'suppliers')
+    return (
+      <CatalogWorkspace
+        key={`${slug}-${supplierFilter ?? ''}`}
+        kind={slug}
+        demo={demo}
+        initialSupplierId={supplierFilter}
+      />
+    );
   const page = pages.find((p) => p.slug === slug)!;
   const base = demo ? '/demo' : '/app';
   const Icon = page.icon;
@@ -83,8 +101,9 @@ export function FeaturePage({ slug, demo }: { slug: string; demo: boolean }) {
           <div className="phase-banner">
             <Plug size={19} />
             <span>
-              <strong>Conexões com configuração pendente</strong>As integrações serão implementadas
-              nas fases indicadas. Nenhuma conta externa está conectada.
+              <strong>Conexões externas com configuração pendente</strong>O catálogo já aceita
+              importação CSV/XML autorizada. As conexões automáticas serão implementadas nas fases
+              indicadas.
             </span>
           </div>
           <div className="integration-grid">
@@ -108,7 +127,13 @@ export function FeaturePage({ slug, demo }: { slug: string; demo: boolean }) {
                 <h2>{item.name}</h2>
                 <p>{item.description}</p>
                 <div className="integration-bottom">
-                  <span>Disponível na Fase {item.phase}</span>
+                  {item.id === 'suppliers' ? (
+                    <Link href={`${base}/suppliers`}>
+                      Importar CSV/XML <ArrowUpRight size={13} />
+                    </Link>
+                  ) : (
+                    <span>Disponível na Fase {item.phase}</span>
+                  )}
                   <LockKeyhole size={15} />
                 </div>
               </article>
@@ -426,7 +451,7 @@ function Settings({ demo }: { demo: boolean }) {
           </div>
           <div>
             <dt>Versão</dt>
-            <dd>0.1.0 · Fase 1</dd>
+            <dd>0.2.0 · Fase 2</dd>
           </div>
           <div>
             <dt>Integrações comerciais</dt>

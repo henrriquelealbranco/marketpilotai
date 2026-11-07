@@ -124,7 +124,7 @@ export function AppShell({
           <div className="phase-note">
             <span className="status-dot" />
             <span>
-              Fundação do sistema <strong>Fase 1 / 7</strong>
+              Catálogo operacional <strong>Fase 2 / 7</strong>
             </span>
           </div>
         )}
@@ -247,7 +247,7 @@ export function AppShell({
             {demo ? 'Ambiente de demonstração' : 'Workspace protegido'}
           </span>
           <span>
-            MarketPilot AI <span className="footer-version">v0.1.0</span>
+            MarketPilot AI <span className="footer-version">v0.2.0</span>
             <Link href={`${base}/settings`} aria-label="Sobre esta versão">
               <CircleHelp size={14} />
             </Link>

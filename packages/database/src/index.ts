@@ -1,5 +1,6 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from './generated/client.js';
+import type { Prisma } from './generated/client.js';
 let client: PrismaClient | undefined;
 export function database() {
   if (!process.env.DATABASE_URL)
@@ -15,3 +16,4 @@ export function database() {
   return client;
 }
 export type Database = PrismaClient;
+export type DatabaseTransaction = Prisma.TransactionClient;

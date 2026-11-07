@@ -17,6 +17,7 @@ import { buildDashboard } from './dashboard.js';
 import { demoOrders } from './demo.js';
 import { hashPassword, verifyPassword, hashToken } from './crypto.js';
 import { HttpError, requireIdentity, issueSession, SESSION_COOKIE } from './auth.js';
+import { registerCatalogRoutes } from './catalog/routes.js';
 
 export interface AppOptions {
   db?: Database;
@@ -62,8 +63,8 @@ export async function buildApp(options: AppOptions = {}) {
     openapi: {
       info: {
         title: 'MarketPilot API',
-        description: 'Fase 1. Sessão persistente e demonstração isolada.',
-        version: '0.1.0',
+        description: 'Fase 2. Identidade, catálogo persistente e importação autorizada.',
+        version: '0.2.0',
       },
       components: {
         securitySchemes: { session: { type: 'apiKey', in: 'cookie', name: SESSION_COOKIE } },
@@ -90,7 +91,11 @@ export async function buildApp(options: AppOptions = {}) {
     if (!(error instanceof Error))
       return reply.status(503).send({ message: 'Serviço temporariamente indisponível.' });
     if ('code' in error && error.code === 'P2002')
-      return reply.status(409).send({ message: 'Não foi possível criar a conta com esse e-mail.' });
+      return reply.status(409).send({ message: 'Um registro com estes dados já existe.' });
+    if ('code' in error && error.code === 'P2034')
+      return reply
+        .status(409)
+        .send({ message: 'Outra alteração foi recebida. Atualize a página e tente novamente.' });
     if ('statusCode' in error && typeof error.statusCode === 'number' && error.statusCode < 500)
       return reply.status(error.statusCode).send({
         message:
@@ -112,7 +117,7 @@ export async function buildApp(options: AppOptions = {}) {
   });
   app.get('/health', { schema: { tags: ['System'], summary: 'Saúde do processo' } }, async () => ({
     status: 'ok',
-    phase: 1,
+    phase: 2,
   }));
   app.get(
     '/ready',
@@ -333,5 +338,6 @@ export async function buildApp(options: AppOptions = {}) {
       return { items };
     },
   );
+  await registerCatalogRoutes(app, db);
   return app;
 }

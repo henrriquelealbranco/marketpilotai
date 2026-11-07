@@ -1,4 +1,7 @@
 import { z } from 'zod';
+import pt from 'zod/v4/locales/pt.js';
+z.config(pt());
+export * from './catalog';
 
 export const loginSchema = z.object({
   email: z

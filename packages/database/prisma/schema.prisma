@@ -20,6 +20,10 @@ model Workspace {
   createdAt DateTime @default(now())
   users     User[]
   auditLogs AuditLog[]
+  suppliers Supplier[]
+  products Product[]
+  catalogImports CatalogImport[]
+  costSnapshots CostSnapshot[]
 }
 
 model User {
@@ -33,6 +37,7 @@ model User {
   createdAt    DateTime  @default(now())
   sessions     Session[]
   auditLogs    AuditLog[]
+  catalogImports CatalogImport[]
   @@index([workspaceId])
 }
 
@@ -56,4 +61,99 @@ model AuditLog {
   action      String
   createdAt   DateTime  @default(now())
   @@index([workspaceId, createdAt])
+}
+
+enum CatalogStatus {
+  ACTIVE
+  ARCHIVED
+}
+enum CatalogSource {
+  MANUAL
+  CSV
+  XML
+}
+enum CatalogFormat {
+  CSV
+  XML
+}
+model Supplier {
+  id String @id @default(uuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name String
+  cnpj String?
+  contactName String?
+  email String?
+  phone String?
+  sourceUrl String?
+  notes String?
+  shippingDays Int @default(2)
+  shippingCostCents Int @default(0)
+  rating Int @default(0)
+  status CatalogStatus @default(ACTIVE)
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  products Product[]
+  imports CatalogImport[]
+  @@unique([id, workspaceId])
+  @@index([workspaceId, status])
+}
+model Product {
+  id String @id @default(uuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  supplierId String
+  supplier Supplier @relation(fields: [supplierId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  sku String
+  name String
+  category String @default("Sem categoria")
+  costCents Int
+  stock Int
+  shippingDays Int @default(2)
+  shippingCostCents Int @default(0)
+  sourceUrl String?
+  source CatalogSource @default(MANUAL)
+  status CatalogStatus @default(ACTIVE)
+  version Int @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  history CostSnapshot[]
+  @@unique([workspaceId, supplierId, sku])
+  @@unique([id, workspaceId])
+  @@index([workspaceId, status, updatedAt])
+}
+model CatalogImport {
+  id String @id @default(uuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  supplierId String
+  supplier Supplier @relation(fields: [supplierId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  actorId String?
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  fileName String
+  fileHash String
+  format CatalogFormat
+  totalRows Int
+  createdCount Int @default(0)
+  updatedCount Int @default(0)
+  unchangedCount Int @default(0)
+  createdAt DateTime @default(now())
+  @@unique([workspaceId, supplierId, fileHash])
+  @@index([workspaceId, createdAt])
+}
+model CostSnapshot {
+  id String @id @default(uuid())
+  workspaceId String
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  productId String
+  product Product @relation(fields: [productId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  costCents Int
+  stock Int
+  shippingDays Int
+  shippingCostCents Int
+  source CatalogSource
+  sourceUrl String?
+  createdAt DateTime @default(now())
+  @@index([workspaceId, productId, createdAt])
 }

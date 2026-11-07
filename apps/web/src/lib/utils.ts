@@ -6,6 +6,7 @@ export function cn(...inputs: ClassValue[]) {
 export const money = (cents: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(cents / 100);
 export const number = (value: number) => new Intl.NumberFormat('pt-BR').format(value);
+export const daysLabel = (value: number) => `${value} ${value === 1 ? 'dia' : 'dias'}`;
 export const percent = (value: number) =>
   `${new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 }).format(value)}%`;
 export class ApiError extends Error {

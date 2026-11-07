@@ -39,7 +39,15 @@ Fase 2 recebe o catálogo de produtos/fornecedores e importação. O banco da Fa
 
 Deploy remoto/Hostinger/Coolify fica para a Fase 7. A configuração local não acessa nem altera a VPS.
 
-## Referências consultadas
+## Evolução na Fase 2
+
+O catálogo fica em `apps/api/src/catalog` (parser, serviço transacional e rotas) e `apps/web/src/components/catalog` (consulta, formulários, prévia e histórico). Contratos públicos continuam em `packages/contracts`; não há dependência do frontend em código de servidor.
+
+Supplier, Product, CatalogImport e CostSnapshot usam workspace da sessão. Chaves compostas no banco impedem relações de catálogo entre workspaces. CRUD usa arquivamento, versões otimistas e auditoria. Importações validadas usam transação serializável, inserções em lote e hash idempotente; arquivos não são persistidos. O dashboard mantém finanças sem dados fictícios e passa a consultar o resumo real de produtos.
+
+Não há chamadas externas. A demonstração mantém o catálogo na memória do QueryClient e compartilha apenas o parser limitado, sem escrita no banco. Consulte `docs/catalog-format.md` para o contrato dos arquivos e `docs/phase-2.md` para o estado da entrega.
+
+## Referências técnicas
 
 - [Next.js App Router](https://nextjs.org/docs/app/getting-started/installation)
 - [Prisma 7 e adaptador PostgreSQL](https://www.prisma.io/docs/orm/v7/prisma-client/setup-and-configuration/introduction)

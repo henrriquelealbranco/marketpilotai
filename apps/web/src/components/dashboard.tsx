@@ -25,16 +25,31 @@ import {
   CircleHelp,
   Radar,
 } from 'lucide-react';
-import type { Dashboard as DashboardData, Period } from '@marketpilot/contracts';
+import type { Dashboard as DashboardData, Period, CatalogSummary } from '@marketpilot/contracts';
 import { api, money, number, percent, cn } from '@/lib/utils';
 import { Button } from './ui/button';
 import { RevenueChart } from './revenue-chart';
 import { ProductRanking } from './product-ranking';
+import { initialDemoCatalog } from './catalog/demo-data';
 
 export function Dashboard({ demo }: { demo: boolean }) {
   const [period, setPeriod] = useState<Period>(30);
   const [exported, setExported] = useState(false);
   const base = demo ? '/demo' : '/app';
+  const { data: realCatalog } = useQuery({
+    queryKey: ['catalog', 'summary'],
+    queryFn: () => api<CatalogSummary>('/v1/catalog/summary'),
+    enabled: !demo,
+  });
+  const { data: demoCatalog } = useQuery({
+    queryKey: ['demo-catalog'],
+    queryFn: initialDemoCatalog,
+    enabled: demo,
+    staleTime: Infinity,
+  });
+  const activeProducts = demo
+    ? demoCatalog?.products.filter((p) => p.status === 'ACTIVE').length
+    : realCatalog?.activeProducts;
   const { data, isPending, isError, error, refetch, isFetching } = useQuery({
     queryKey: ['dashboard', demo ? 'demo' : 'real', period],
     queryFn: () => api<DashboardData>(`/v1/${demo ? 'demo/' : ''}dashboard?days=${period}`),
@@ -205,8 +220,9 @@ export function Dashboard({ demo }: { demo: boolean }) {
         <div className="account-empty-notice">
           <CircleCheck size={18} />
           <span>
-            <strong>Sua operação está pronta para começar.</strong> Os indicadores serão preenchidos
-            quando os catálogos e pedidos forem integrados.
+            <strong>Sua operação está pronta para começar.</strong> Os indicadores financeiros serão
+            preenchidos quando os pedidos forem integrados. Seu catálogo está disponível em
+            Produtos.
           </span>
           <Link href="/app/integrations">
             Ver próximos passos <ArrowRight size={14} />
@@ -255,7 +271,7 @@ export function Dashboard({ demo }: { demo: boolean }) {
           <div className="chart-foot">
             <span>Valores em reais (R$)</span>
             <span>
-              {demo ? 'Custos e receitas fictícios' : 'Sem integrações comerciais nesta fase'}
+              {demo ? 'Custos e receitas fictícios' : 'Sem pedidos integrados nesta fase'}
             </span>
           </div>
         </section>
@@ -305,7 +321,7 @@ export function Dashboard({ demo }: { demo: boolean }) {
             <p>
               {demo
                 ? 'Explore a estrutura do centro de operações. Agentes e workflows entram nas próximas fases.'
-                : 'Conecte suas fontes nas próximas fases para iniciar análises com dados da sua operação.'}
+                : 'As análises de IA entram nas próximas fases, a partir do seu catálogo autorizado.'}
             </p>
           </div>
           <Link className="intelligence-link" href={`${base}/operations`}>
@@ -369,7 +385,11 @@ export function Dashboard({ demo }: { demo: boolean }) {
       </div>
       <section className="panel operational-overview" aria-label="Indicadores operacionais">
         {[
-          { label: 'Produtos ativos', value: '—', detail: 'Catálogo pendente' },
+          {
+            label: 'Produtos ativos',
+            value: activeProducts === undefined ? '—' : number(activeProducts),
+            detail: demo ? 'Catálogo demonstrativo' : 'Cadastrados no workspace',
+          },
           { label: 'Produtos monitorados', value: '—', detail: 'Monitoramento pendente' },
           { label: 'Oportunidades', value: '—', detail: 'Análises não iniciadas' },
           { label: 'Automações executadas', value: '0', detail: 'Nenhuma execução' },
