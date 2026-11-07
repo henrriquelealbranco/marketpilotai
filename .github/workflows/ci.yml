@@ -1,0 +1,47 @@
+name: Phase 1 checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: marketpilot
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: marketpilot_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U marketpilot -d marketpilot_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgres://marketpilot:ci-only-password@localhost:5432/marketpilot_test
+      APP_ORIGIN: http://localhost:3000
+      API_INTERNAL_URL: http://127.0.0.1:4000
+      ALLOW_REGISTRATION: 'true'
+      HOST: 127.0.0.1
+      PORT: 4000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: cp .env.example .env
+      - run: npm run db:generate
+      - run: npm run db:migrate
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run test:integration
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-results
+          path: playwright-report/

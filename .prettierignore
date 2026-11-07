@@ -1,0 +1,12 @@
+node_modules
+.next
+dist
+package-lock.json
+packages/database/src/generated
+playwright-report
+test-results
+docs/screenshots
+docs/brand
+apps/web/public/brand
+apps/web/src/app/icon.svg
+**/next-env.d.ts
