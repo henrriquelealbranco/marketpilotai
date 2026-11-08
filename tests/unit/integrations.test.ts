@@ -130,6 +130,12 @@ describe('CJdropshipping oficial', () => {
     expect(JSON.parse(String(t.requests[0]?.init.body))).toEqual({ apiKey: 'CJ123@api@key' });
     expect(JSON.stringify(tokens)).not.toContain('CJ123@api@key');
   });
+  it('relata somente o código seguro quando a CJ rejeita uma chave', async () => {
+    const t = transport([json({ code: 1601000, result: false, message: 'User not find', data: null })]);
+    await expect(
+      new CJDropshippingAdapter({ apiKey: 'CJ123@api@key' }, t.fetcher).getAccessToken(),
+    ).rejects.toMatchObject({ upstreamCode: '1601000' });
+  });
 });
 
 describe('Mercado Livre oficial', () => {

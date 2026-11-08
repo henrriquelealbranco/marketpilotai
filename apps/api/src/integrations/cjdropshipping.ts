@@ -64,10 +64,17 @@ export class CJDropshippingAdapter {
       typeof data.accessTokenExpiryDate !== 'string' ||
       typeof data.refreshTokenExpiryDate !== 'string'
     ) {
+      const upstreamCode =
+        typeof result.code === 'number' && Number.isSafeInteger(result.code)
+          ? String(result.code)
+          : undefined;
       throw new IntegrationError(
         'upstream_rejected',
-        'A CJ recusou ou retornou uma credencial inválida.',
+        upstreamCode
+          ? `A CJ recusou ou retornou uma credencial inválida (código ${upstreamCode}).`
+          : 'A CJ recusou ou retornou uma credencial inválida.',
         'cjdropshipping',
+        { upstreamCode },
       );
     }
     return {
