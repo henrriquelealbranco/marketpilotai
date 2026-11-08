@@ -290,7 +290,7 @@ export function Dashboard({ demo }: { demo: boolean }) {
           <div className="chart-foot">
             <span>Valores em reais (R$)</span>
             <span>
-              {demo ? 'Custos e receitas fictícios' : 'Sem pedidos integrados nesta fase'}
+              {demo ? 'Custos e receitas fictícios' : 'Sem pedidos integrados ainda'}
             </span>
           </div>
         </section>

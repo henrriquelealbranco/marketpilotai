@@ -119,7 +119,7 @@ export function ProductRanking({ rows, base }: { rows: Product[]; base: string }
         <div className="inline-empty">
           <Headphones size={28} />
           <strong>Seu ranking começa com a primeira venda</strong>
-          <p>Produtos e catálogos serão conectados na Fase 2.</p>
+          <p>Cadastre produtos ou conecte sua fonte para iniciar o ranking.</p>
         </div>
       )}
     </section>
