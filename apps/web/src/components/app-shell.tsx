@@ -221,20 +221,6 @@ export function AppShell({
             </span>
           </div>
         </header>
-        {demo && (
-          <div className="demo-banner" data-testid="demo-banner">
-            <span>
-              <FlaskConical size={14} />
-              <strong>Demonstração</strong>
-              <span className="demo-detail">
-                Todos os dados são fictícios. Nenhuma operação externa.
-              </span>
-            </span>
-            <Link href="/signup">
-              Criar minha conta <ArrowUpRight size={14} />
-            </Link>
-          </div>
-        )}
         <main id="main" className="main-content">
           {children}
         </main>
