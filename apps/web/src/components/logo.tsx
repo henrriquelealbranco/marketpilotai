@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { useId } from 'react';
-export function Brand({ compact = false, href = '/demo' }: { compact?: boolean; href?: string }) {
+export function Brand({ compact = false, href = '/login' }: { compact?: boolean; href?: string }) {
   const id = useId();
   return (
     <Link href={href} className="brand" aria-label="MarketPilot AI início">

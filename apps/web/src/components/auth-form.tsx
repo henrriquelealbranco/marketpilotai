@@ -7,7 +7,6 @@ import {
   ArrowRight,
   Eye,
   EyeOff,
-  ArrowUpRight,
   ShieldCheck,
   ChartNoAxesCombined,
   Orbit,
@@ -89,9 +88,6 @@ export function AuthForm({ signup = false }: { signup?: boolean }) {
         <div className="auth-mobile-brand">
           <Brand />
         </div>
-        <Link href="/demo" className="auth-demo-link">
-          Explorar demonstração <ArrowUpRight size={15} />
-        </Link>
         <div className="auth-form-wrap">
           <span className="subtle-tag">SEU WORKSPACE</span>
           <h2>{signup ? 'Comece a sua operação.' : 'Bom ter você por aqui.'}</h2>
@@ -104,13 +100,10 @@ export function AuthForm({ signup = false }: { signup?: boolean }) {
             <div className="auth-closed">
               <ShieldCheck size={30} />
               <h3>Cadastro por convite</h3>
-              <p>
-                Solicite acesso ao responsável pela operação. Você pode explorar o ambiente de
-                demonstração enquanto isso.
-              </p>
+              <p>Solicite acesso ao responsável pela operação.</p>
               <Button asChild>
-                <Link href="/demo">
-                  Abrir demonstração
+                <Link href="/login">
+                  Ir para entrada
                   <ArrowRight size={16} />
                 </Link>
               </Button>
@@ -158,8 +151,8 @@ export function AuthForm({ signup = false }: { signup?: boolean }) {
                   name="password"
                   type={show ? 'text' : 'password'}
                   autoComplete={signup ? 'new-password' : 'current-password'}
-                  placeholder={signup ? 'Pelo menos 12 caracteres' : 'Sua senha'}
-                  minLength={signup ? 12 : 1}
+                  placeholder={signup ? 'Pelo menos 6 caracteres' : 'Sua senha'}
+                  minLength={signup ? 6 : 1}
                   maxLength={128}
                   required
                 />
@@ -172,7 +165,7 @@ export function AuthForm({ signup = false }: { signup?: boolean }) {
                 </button>
               </div>
               {signup && (
-                <p className="field-help">Use uma senha única com pelo menos 12 caracteres.</p>
+                <p className="field-help">Use uma senha única com pelo menos 6 caracteres.</p>
               )}
               {error && (
                 <p className="form-error" role="alert">
@@ -195,17 +188,20 @@ export function AuthForm({ signup = false }: { signup?: boolean }) {
               </Button>
             </form>
           )}
-          <p className="auth-switch">
-            {signup ? 'Já tem uma conta?' : 'Primeira vez por aqui?'}{' '}
-            <Link href={signup ? '/login' : '/signup'}>{signup ? 'Entrar' : 'Criar conta'}</Link>
-          </p>
+          {signup ? (
+            <p className="auth-switch">
+              Já tem uma conta? <Link href="/login">Entrar</Link>
+            </p>
+          ) : (
+            <p className="auth-switch">Acesso exclusivo para usuários autorizados.</p>
+          )}
           <div className="auth-security">
             <ShieldCheck size={15} />
-            <span>Dados da demonstração e da conta separados.</span>
+            <span>Dados da operação protegidos.</span>
           </div>
         </div>
         <footer className="auth-legal">
-          Em desenvolvimento · Fase 2 de 7<span>Português (Brasil)</span>
+          MarketPilot AI<span>Português (Brasil)</span>
         </footer>
       </div>
     </div>
