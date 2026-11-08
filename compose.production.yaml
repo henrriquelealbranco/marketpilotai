@@ -117,6 +117,9 @@ services:
     networks: [backend]
     depends_on:
       marketpilot-postgres: { condition: service_healthy }
+    mem_limit: 768m
+    cpus: 0.75
+    pids_limit: 128
 
   marketpilot-worker:
     <<: *node
