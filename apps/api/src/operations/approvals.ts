@@ -76,6 +76,15 @@ export async function requestListingApproval(
     },
   });
   if (pending) return pending;
+  let marketplaceValidation: Record<string, unknown> | null = null;
+  if (kind === 'LISTING_PUBLISH') {
+    const { adapter, accessToken, userId } = await mercadoLivreToken(db, identity.workspace.id);
+    marketplaceValidation = await adapter.validateListing(
+      accessToken,
+      userId,
+      listing.payloadJson as never,
+    );
+  }
   const payload = {
     listingId: id,
     version: listing.version,
@@ -88,6 +97,7 @@ export async function requestListingApproval(
     quoteId: quote?.id ?? null,
     marginBps: result?.marginBps ?? null,
     estimatedProfitCents: result?.estimatedProfitCents ?? null,
+    marketplaceValidation,
     risks: [
       'Confirmar categoria, atributos e direitos das imagens.',
       'Confirmar documentação fiscal, logística e políticas do marketplace.',

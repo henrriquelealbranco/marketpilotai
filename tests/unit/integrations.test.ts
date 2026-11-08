@@ -205,6 +205,24 @@ describe('Mercado Livre oficial', () => {
     ).rejects.toMatchObject({ code: 'invalid_input' });
     expect(t.requests).toHaveLength(3);
   });
+  it('consulta categoria, atributos obrigatórios e valida o anúncio antes de publicar', async () => {
+    const t = transport([
+      json([{ category_id: 'MLB1234', attributes: [{ id: 'BRAND', value_name: 'Marca' }] }]),
+      json([{ id: 'BRAND', tags: { required: true } }]),
+      json({ status: 200, cause: [] }),
+    ]);
+    const adapter = new MercadoLivreAdapter(mlConfig, t.fetcher);
+    await adapter.predictCategory('access', 'Produto oficial para revenda');
+    await adapter.getCategoryAttributes('access', 'MLB1234');
+    await adapter.validateListing('access', 123, listing);
+    expect(t.requests.map((request) => [request.url.pathname, request.init.method])).toEqual([
+      ['/sites/MLB/domain_discovery/search', 'GET'],
+      ['/categories/MLB1234/attributes', 'GET'],
+      ['/items/validate', 'POST'],
+    ]);
+    expect(t.requests[0]?.url.searchParams.get('q')).toBe('Produto oficial para revenda');
+    expect(JSON.parse(String(t.requests[2]?.init.body))).toMatchObject({ seller_id: 123, ...listing });
+  });
   it('não declara preço atualizado se a API ignorou a alteração', async () => {
     const t = transport([json({ id: 'MLB123', price: 130 })]);
     await expect(

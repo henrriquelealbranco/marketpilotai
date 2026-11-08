@@ -281,6 +281,41 @@ export class MercadoLivreAdapter {
       throw new IntegrationError('invalid_response', 'Resposta multiget inválida.', 'mercadolivre');
     return result;
   }
+  async predictCategory(accessToken: string, title: string): Promise<JsonValue[]> {
+    requireValue(accessToken, 'mercadolivre');
+    const query = title.trim();
+    if (query.length < 3 || query.length > 200) invalidInput('mercadolivre');
+    const result = await this.#request(
+      accessToken,
+      '/sites/MLB/domain_discovery/search',
+      new URLSearchParams({ q: query, limit: '3' }),
+    );
+    if (!Array.isArray(result))
+      throw new IntegrationError('invalid_response', 'Predição de categoria inválida.', 'mercadolivre');
+    return result;
+  }
+  async getCategoryAttributes(accessToken: string, categoryId: string): Promise<JsonValue[]> {
+    if (!/^[A-Z]{3}\d{1,24}$/.test(categoryId)) invalidInput('mercadolivre');
+    const result = await this.#request(accessToken, `/categories/${categoryId}/attributes`);
+    if (!Array.isArray(result))
+      throw new IntegrationError('invalid_response', 'Atributos de categoria inválidos.', 'mercadolivre');
+    return result;
+  }
+  async validateListing(
+    accessToken: string,
+    sellerId: string | number,
+    payload: ListingInput,
+  ): Promise<JsonObject> {
+    const parsed = listingInputSchema.safeParse(payload);
+    if (!parsed.success) invalidInput('mercadolivre');
+    return objectResult(
+      await this.#request(accessToken, '/items/validate', undefined, 'POST', {
+        ...parsed.data,
+        seller_id: Number(numericId(sellerId)),
+      }),
+      'mercadolivre',
+    );
+  }
   async listOrders(
     accessToken: string,
     sellerId: string | number,
