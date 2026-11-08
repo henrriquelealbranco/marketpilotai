@@ -304,6 +304,35 @@ export async function registerOperationRoutes(app: FastifyInstance, db: Database
         })
         .strict()
         .parse(r.body);
+      const start = new Date();
+      start.setUTCHours(0, 0, 0, 0);
+      const today = await db.agentRun.findMany({
+        where: {
+          workspaceId: identity.workspace.id,
+          agent: 'supplier-discovery',
+          provider: 'openai',
+          createdAt: { gte: start },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+      });
+      const cached = today.find(
+        (entry) =>
+          entry.status === 'COMPLETED' &&
+          (entry.inputJson as Record<string, unknown>)?.query === input.query &&
+          entry.outputJson,
+      );
+      if (cached)
+        return reply.status(200).send({
+          runId: cached.id,
+          ...(cached.outputJson as Record<string, unknown>),
+          reused: true,
+        });
+      const dailyLimit = Number(process.env.SUPPLIER_DISCOVERY_DAILY_LIMIT ?? 3);
+      if (!Number.isInteger(dailyLimit) || dailyLimit < 1 || dailyLimit > 20)
+        requiredConfiguration('O limite diário de descoberta de fornecedores é inválido.');
+      if (today.length >= dailyLimit)
+        throw new HttpError(429, 'Limite diário de descobertas atingido para este workspace.');
       const active = await db.agentRun.count({
         where: { workspaceId: identity.workspace.id, agent: 'supplier-discovery', status: 'RUNNING' },
       });
