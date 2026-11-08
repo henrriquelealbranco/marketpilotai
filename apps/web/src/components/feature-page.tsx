@@ -12,6 +12,7 @@ import { CatalogWorkspace } from './catalog/catalog-workspace';
 import { PricingWorkspace } from './pricing/pricing-workspace';
 import { OperationsWorkspace } from './operations/operations-workspace';
 import { BusinessWorkspace } from './operations/business-workspace';
+import { Dashboard } from './dashboard';
 export function FeaturePage({
   slug,
   demo,
@@ -21,6 +22,7 @@ export function FeaturePage({
   demo: boolean;
   supplierFilter?: string;
 }) {
+  if (slug === 'dashboard') return <Dashboard demo={demo} />;
   if (slug === 'products' || slug === 'suppliers')
     return (
       <CatalogWorkspace

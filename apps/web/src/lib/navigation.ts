@@ -23,7 +23,7 @@ export const navigation = [
     label: 'PRINCIPAL',
     items: [
       { label: 'Menu da operação', slug: 'menu', icon: PanelsTopLeft, phase: 7 },
-      { label: 'Dashboard', slug: '', icon: LayoutDashboard, phase: 1 },
+      { label: 'Dashboard', slug: 'dashboard', icon: LayoutDashboard, phase: 1 },
       { label: 'AI Operations Center', slug: 'operations', icon: Orbit, phase: 4 },
       { label: 'Product Hunter AI', slug: 'hunter', icon: ScanSearch, phase: 3 },
     ],
