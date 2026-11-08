@@ -25,6 +25,7 @@ import { requireIdentity, HttpError } from '../auth.js';
 import { getProduct } from '../catalog/service.js';
 
 import { N8nAdapter, OpenAIAdapter } from '../integrations/index.js';
+import { checkCJDropshipping, saveCJDropshippingCredentials } from './cjdropshipping.js';
 
 import { parseWorkflowJob, serviceSignature } from '../../../worker/src/contract.js';
 
@@ -1290,6 +1291,14 @@ export async function registerOperationRoutes(app: FastifyInstance, db: Database
           workspaceId_provider: { workspaceId: workspace.id, provider: 'mercadolivre_config' },
         },
       });
+      const cjConfiguration = await db.integrationConnection.findUnique({
+        where: {
+          workspaceId_provider: { workspaceId: workspace.id, provider: 'cjdropshipping_config' },
+        },
+      });
+      const cjConnection = await db.integrationConnection.findUnique({
+        where: { workspaceId_provider: { workspaceId: workspace.id, provider: 'cjdropshipping' } },
+      });
       return {
         mercadolivre: {
           configured: !!(
@@ -1309,9 +1318,30 @@ export async function registerOperationRoutes(app: FastifyInstance, db: Database
           executionUrl: process.env.N8N_PUBLIC_URL ?? null,
         },
         redis: { configured: !!process.env.REDIS_URL },
+        cjdropshipping: {
+          configured: !!(process.env.ENCRYPTION_KEY && cjConfiguration?.encryptedAccessToken),
+          connected: cjConnection?.status === 'CONNECTED',
+          expiresAt: cjConnection?.expiresAt?.toISOString() ?? null,
+        },
         suppliers: { method: 'CSV/XML autorizado', automaticConnector: false },
       };
     },
+  );
+
+  app.post(
+    '/v1/integrations/cjdropshipping/credentials',
+    { schema: schema('Armazenar chave da API CJdropshipping cifrada (ADMIN)') },
+    async (r) => {
+      const identity = await writer(r, true);
+      const input = z.object({ apiKey: z.string().trim().min(12).max(600) }).strict().parse(r.body);
+      return saveCJDropshippingCredentials(db, identity, input.apiKey);
+    },
+  );
+
+  app.post(
+    '/v1/integrations/cjdropshipping/check',
+    { schema: schema('Trocar chave CJ por tokens e validar conexão (ADMIN)') },
+    async (r) => checkCJDropshipping(db, await writer(r, true)),
   );
 
   app.post(

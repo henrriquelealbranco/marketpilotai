@@ -9,6 +9,8 @@ export type {
   OrderListOptions,
   ListingInput,
 } from './mercadolivre.js';
+export { CJDropshippingAdapter } from './cjdropshipping.js';
+export type { CJDropshippingConfig, CJTokens } from './cjdropshipping.js';
 export { OpenAIAdapter } from './openai.js';
 export type {
   OpenAIConfig,

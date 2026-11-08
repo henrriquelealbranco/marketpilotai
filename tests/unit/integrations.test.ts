@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import {
   ConfigurationRequiredError,
+  CJDropshippingAdapter,
   IntegrationError,
   MercadoLivreAdapter,
   N8nAdapter,
@@ -11,6 +12,7 @@ import {
   type Fetcher,
 } from '../../apps/api/src/integrations/index.js';
 import { mercadoLivreCredentials } from '../../apps/api/src/operations/marketplace.js';
+import { cjDropshippingCredentials } from '../../apps/api/src/operations/cjdropshipping.js';
 
 function transport(responses: Array<Response | Error>) {
   const requests: Array<{ url: URL; init: RequestInit }> = [];
@@ -86,6 +88,47 @@ describe('credenciais privadas do Mercado Livre', () => {
         ENCRYPTION_KEY: key,
       }),
     ).resolves.toEqual({ clientId: 'application-id', clientSecret: 'workspace-secret' });
+  });
+});
+
+describe('CJdropshipping oficial', () => {
+  it('recupera a chave da CJ cifrada sem depender de variável de ambiente', async () => {
+    const key = randomBytes(32).toString('base64');
+    const db = {
+      integrationConnection: {
+        findUnique: async () => ({ encryptedAccessToken: encryptSecret('CJ123@api@key', key) }),
+      },
+    };
+    await expect(
+      cjDropshippingCredentials(db as never, 'workspace-1', { ENCRYPTION_KEY: key }),
+    ).resolves.toEqual({ apiKey: 'CJ123@api@key' });
+  });
+  it('troca a chave da API por token apenas no servidor', async () => {
+    const t = transport([
+      json({
+        code: 200,
+        result: true,
+        data: {
+          accessToken: 'cj-access-token',
+          refreshToken: 'cj-refresh-token',
+          accessTokenExpiryDate: '2027-05-07T00:00:00+08:00',
+          refreshTokenExpiryDate: '2027-05-07T00:00:00+08:00',
+        },
+      }),
+    ]);
+    const tokens = await new CJDropshippingAdapter({ apiKey: 'CJ123@api@key' }, t.fetcher)
+      .getAccessToken();
+
+    expect(tokens).toMatchObject({
+      accessToken: 'cj-access-token',
+      refreshToken: 'cj-refresh-token',
+    });
+    expect(t.requests[0]?.url.href).toBe(
+      'https://developers.cjdropshipping.com/api2.0/v1/authentication/getAccessToken',
+    );
+    expect(t.requests[0]?.init.method).toBe('POST');
+    expect(JSON.parse(String(t.requests[0]?.init.body))).toEqual({ apiKey: 'CJ123@api@key' });
+    expect(JSON.stringify(tokens)).not.toContain('CJ123@api@key');
   });
 });
 

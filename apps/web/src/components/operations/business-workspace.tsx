@@ -1531,6 +1531,7 @@ function Alerts({ demo }: { demo: boolean }) {
 }
 interface IntegrationStatus {
   mercadolivre: { configured: boolean; connected: boolean; account: unknown };
+  cjdropshipping: { configured: boolean; connected: boolean; expiresAt: string | null };
   openai: { configured: boolean; model: string | null };
   n8n: { configured: boolean; executionUrl: string | null };
   redis: { configured: boolean };
@@ -1544,7 +1545,8 @@ function Integrations({ demo }: { demo: boolean }) {
     action = useAction(demo),
     ops = useOperations(demo),
     [message, setMessage] = useState(''),
-    [mlSecret, setMlSecret] = useState('');
+    [mlSecret, setMlSecret] = useState(''),
+    [cjApiKey, setCjApiKey] = useState('');
   const data = query.data;
   async function connect() {
     try {
@@ -1580,6 +1582,12 @@ function Integrations({ demo }: { demo: boolean }) {
             description: 'OAuth oficial, anúncios aprovados e consulta de pedidos.',
             configured: data?.mercadolivre.configured,
             connected: data?.mercadolivre.connected,
+          },
+          {
+            name: 'CJdropshipping',
+            description: 'Catálogo real via API oficial. Só sincroniza após validação da chave.',
+            configured: data?.cjdropshipping.configured,
+            connected: data?.cjdropshipping.connected,
           },
           {
             name: 'OpenAI',
@@ -1672,6 +1680,52 @@ function Integrations({ demo }: { demo: boolean }) {
                     Desconectar
                   </Button>
                 )}
+              </div>
+            )}
+            {item.name === 'CJdropshipping' && (
+              <div className="control-actions">
+                {!item.configured && (
+                  <form
+                    className="control-form"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void action
+                        .run('/v1/integrations/cjdropshipping/credentials', { apiKey: cjApiKey })
+                        .then(() => setCjApiKey(''))
+                        .catch(() => {});
+                    }}
+                  >
+                    <label>
+                      Chave da API CJdropshipping
+                      <input
+                        type="password"
+                        autoComplete="off"
+                        value={cjApiKey}
+                        onChange={(event) => setCjApiKey(event.target.value)}
+                        placeholder="Cole a chave criada na CJ"
+                        required
+                      />
+                    </label>
+                    <Button
+                      type="submit"
+                      size="sm"
+                      variant="outline"
+                      disabled={demo || !ops.admin || action.pending || !cjApiKey.trim()}
+                    >
+                      Guardar chave cifrada
+                    </Button>
+                  </form>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={demo || !ops.admin || !item.configured || action.pending}
+                  onClick={() =>
+                    void action.run('/v1/integrations/cjdropshipping/check', {}).catch(() => {})
+                  }
+                >
+                  Verificar conexão
+                </Button>
               </div>
             )}
             {item.name === 'n8n' && (

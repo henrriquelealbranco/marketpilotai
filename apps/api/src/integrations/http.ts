@@ -3,7 +3,7 @@ export interface JsonObject {
   [key: string]: JsonValue;
 }
 export type Fetcher = typeof fetch;
-export type Provider = 'mercadolivre' | 'openai' | 'n8n' | 'secrets';
+export type Provider = 'mercadolivre' | 'cjdropshipping' | 'openai' | 'n8n' | 'secrets';
 export type IntegrationErrorCode =
   | 'configuration_required'
   | 'invalid_configuration'
