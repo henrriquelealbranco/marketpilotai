@@ -12,8 +12,6 @@ import {
   PanelLeftOpen,
   ChevronDown,
   ChevronRight,
-  FlaskConical,
-  ArrowUpRight,
   LogOut,
   Menu,
   Command,
@@ -76,7 +74,7 @@ export function AppShell({
     <>
       <div className="sidebar-brand">
         <Brand compact={collapsed && !isMobile} href={base} />
-        {(!collapsed || isMobile) && <span className="version-tag">BETA</span>}
+        {(!collapsed || isMobile) && <span className="version-tag">ATIVO</span>}
       </div>
       {(!collapsed || isMobile) && (
         <div className="workspace-switch">
@@ -96,9 +94,8 @@ export function AppShell({
           <div className="nav-group" key={group.label}>
             {(!collapsed || isMobile) && <p className="nav-label">{group.label}</p>}
             {group.items.map((item) => {
-              const href =
-                item.slug === 'demo' ? '/demo' : `${base}${item.slug ? `/${item.slug}` : ''}`;
-              const active = item.slug !== 'demo' && pathname === href;
+              const href = `${base}${item.slug ? `/${item.slug}` : ''}`;
+              const active = pathname === href;
               return (
                 <Link
                   key={item.slug}
@@ -273,7 +270,7 @@ export function AppShell({
               .filter((p) => p.label.toLowerCase().includes(search.toLowerCase()))
               .map((p) => (
                 <Link
-                  href={p.slug === 'demo' ? '/demo' : `${base}${p.slug ? `/${p.slug}` : ''}`}
+                  href={`${base}${p.slug ? `/${p.slug}` : ''}`}
                   key={p.slug}
                   onClick={() => setSearchOpen(false)}
                 >

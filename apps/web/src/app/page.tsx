@@ -24,8 +24,8 @@ export default function Home() {
           <a href="#produto">Produto</a>
           <a href="#engenharia">Engenharia</a>
           <Link href="/login">Entrar</Link>
-          <Link href="/demo" className="button button-primary">
-            Explorar demonstração <ArrowUpRight size={14} />
+          <Link href="/login" className="button button-primary">
+            Acessar operação <ArrowUpRight size={14} />
           </Link>
         </div>
       </nav>
@@ -43,16 +43,14 @@ export default function Home() {
           que mantém cada decisão à vista.
         </p>
         <div className="landing-ctas">
-          <Link className="button button-primary" href="/demo">
-            Conhecer o MarketPilot <ArrowRight size={17} />
+          <Link className="button button-primary" href="/login">
+            Acessar o MarketPilot <ArrowRight size={17} />
           </Link>
           <a className="button button-outline" href="#engenharia">
             Explorar a engenharia
           </a>
         </div>
-        <small>
-          Projeto de portfólio funcional · demonstração isolada · integrações oficiais configuráveis
-        </small>
+        <small>Operação privada · dados isolados · integrações oficiais configuráveis</small>
         <div className="landing-orbit" aria-hidden="true">
           <Orbit size={270} strokeWidth={0.35} />
         </div>
@@ -77,11 +75,11 @@ export default function Home() {
             <span />
             <span />
             <span />
-            <small>MarketPilot AI · Demonstração</small>
+            <small>MarketPilot AI · Operação privada</small>
           </div>
           <Image
             src="/screenshots/operations-dark-v03.png"
-            alt="Captura real da central de operações MarketPilot AI em modo demonstração"
+            alt="Captura da central de operações MarketPilot AI"
             width={1440}
             height={1100}
             priority
@@ -99,7 +97,7 @@ export default function Home() {
           </span>
           <span>
             <LockKeyhole size={15} />
-            Demonstração sem ações externas
+            Operação com aprovação humana
           </span>
         </div>
       </section>
@@ -167,7 +165,7 @@ export default function Home() {
             Uma análise recomenda. Você revisa. Ações comerciais sensíveis precisam de aprovação e
             conexão autorizada.
           </p>
-          <Link href="/demo/agents" className="control-link">
+          <Link href="/login" className="control-link">
             Conhecer os agentes <ArrowRight size={13} />
           </Link>
         </div>
@@ -235,8 +233,8 @@ export default function Home() {
           · Docker · Coolify
         </div>
         <p className="landing-status">
-          A demonstração usa dados fictícios. Ativar serviços externos exige credenciais, permissões
-          e configuração no servidor. O deploy remoto depende da infraestrutura de destino.
+          A operação usa exclusivamente os dados registrados no seu workspace. Serviços externos só
+          são ativados após credenciais e permissões válidas no servidor.
         </p>
       </section>
       <section className="landing-end">
@@ -246,8 +244,8 @@ export default function Home() {
           <br />
           começa com clareza.
         </h2>
-        <Link className="button button-primary" href="/demo">
-          Explorar demonstração <ArrowUpRight size={16} />
+        <Link className="button button-primary" href="/login">
+          Acessar operação <ArrowUpRight size={16} />
         </Link>
       </section>
       <footer className="landing-footer">

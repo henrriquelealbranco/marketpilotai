@@ -14,7 +14,6 @@ import {
   workspaceSchema,
 } from '@marketpilot/contracts';
 import { buildDashboard } from './dashboard.js';
-import { demoOrders } from './demo.js';
 import { hashPassword, verifyPassword, hashToken } from './crypto.js';
 import { HttpError, requireIdentity, issueSession, SESSION_COOKIE } from './auth.js';
 import { registerCatalogRoutes } from './catalog/routes.js';
@@ -304,11 +303,6 @@ export async function buildApp(options: AppOptions = {}) {
       properties: { days: { type: 'string', enum: ['7', '30', '90'], default: '30' } },
     },
   };
-  app.get('/v1/demo/dashboard', { schema: dashboardSchema }, async (request) => {
-    const { days } = dashboardQuerySchema.parse(request.query);
-    const now = new Date();
-    return buildDashboard(demoOrders(now), days, now, 'simulated');
-  });
   app.get(
     '/v1/dashboard',
     { schema: { ...dashboardSchema, ...privateSchema } },

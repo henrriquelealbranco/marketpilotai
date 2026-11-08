@@ -16,12 +16,13 @@ import {
   Plug,
   Settings2,
   ShieldCheck,
-  FlaskConical,
+  PanelsTopLeft,
 } from 'lucide-react';
 export const navigation = [
   {
     label: 'PRINCIPAL',
     items: [
+      { label: 'Menu da operação', slug: 'menu', icon: PanelsTopLeft, phase: 7 },
       { label: 'Dashboard', slug: '', icon: LayoutDashboard, phase: 1 },
       { label: 'AI Operations Center', slug: 'operations', icon: Orbit, phase: 4 },
       { label: 'Product Hunter AI', slug: 'hunter', icon: ScanSearch, phase: 3 },
@@ -54,7 +55,6 @@ export const navigation = [
       { label: 'Integrações', slug: 'integrations', icon: Plug, phase: 2 },
       { label: 'Configurações', slug: 'settings', icon: Settings2, phase: 1 },
       { label: 'Auditoria', slug: 'audit', icon: ShieldCheck, phase: 1 },
-      { label: 'Modo demonstração', slug: 'demo', icon: FlaskConical, phase: 1 },
     ],
   },
 ];

@@ -38,7 +38,7 @@ export function AuthForm({ signup = false }: { signup?: boolean }) {
         body: JSON.stringify(Object.fromEntries(form)),
       });
       client.clear();
-      router.replace('/app');
+      router.replace('/app/menu');
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Não foi possível acessar sua conta.');

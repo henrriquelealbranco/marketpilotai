@@ -1,5 +1,6 @@
 import { notFound, redirect } from 'next/navigation';
 import { FeaturePage } from '@/components/feature-page';
+import { OperationMenu } from '@/components/operation-menu';
 import { pages } from '@/lib/navigation';
 export default async function CatalogSection({
   params,
@@ -10,7 +11,8 @@ export default async function CatalogSection({
 }) {
   const { section } = await params;
   const query = await searchParams;
-  if (section === 'demo') redirect('/demo');
+  if (section === 'demo') redirect('/login');
+  if (section === 'menu') return <OperationMenu />;
   if (!pages.some((p) => p.slug === section && p.slug !== '')) notFound();
   return (
     <FeaturePage

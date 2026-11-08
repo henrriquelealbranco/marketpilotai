@@ -10,7 +10,7 @@ export default function ErrorPage({ reset }: { reset: () => void }) {
       <button className="button button-primary" onClick={reset}>
         Tentar novamente
       </button>
-      <Link href="/demo">Abrir demonstração</Link>
+      <Link href="/login">Voltar ao acesso</Link>
     </div>
   );
 }

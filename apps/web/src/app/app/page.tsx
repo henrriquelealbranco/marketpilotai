@@ -1,4 +1,4 @@
-import { Dashboard } from '@/components/dashboard';
+import { redirect } from 'next/navigation';
 export default function DashboardPage() {
-  return <Dashboard demo={false} />;
+  redirect('/app/menu');
 }
