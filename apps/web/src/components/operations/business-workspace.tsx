@@ -1684,7 +1684,7 @@ function Integrations({ demo }: { demo: boolean }) {
             )}
             {item.name === 'CJdropshipping' && (
               <div className="control-actions">
-                {!item.configured && (
+                {(!item.configured || !item.connected) && (
                   <form
                     className="control-form"
                     onSubmit={(event) => {
@@ -1696,7 +1696,7 @@ function Integrations({ demo }: { demo: boolean }) {
                     }}
                   >
                     <label>
-                      Chave da API CJdropshipping
+                      {item.configured ? 'Substituir chave da API CJdropshipping' : 'Chave da API CJdropshipping'}
                       <input
                         type="password"
                         autoComplete="off"

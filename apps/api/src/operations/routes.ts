@@ -1333,7 +1333,17 @@ export async function registerOperationRoutes(app: FastifyInstance, db: Database
     { schema: schema('Armazenar chave da API CJdropshipping cifrada (ADMIN)') },
     async (r) => {
       const identity = await writer(r, true);
-      const input = z.object({ apiKey: z.string().trim().min(8).max(600) }).strict().parse(r.body);
+      const input = z
+        .object({
+          apiKey: z
+            .string()
+            .trim()
+            .min(20)
+            .max(600)
+            .refine((value) => !value.includes('*'), 'Cole a chave completa da CJ, não o valor mascarado.'),
+        })
+        .strict()
+        .parse(r.body);
       return saveCJDropshippingCredentials(db, identity, input.apiKey);
     },
   );
