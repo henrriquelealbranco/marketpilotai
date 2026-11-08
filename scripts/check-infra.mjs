@@ -2,11 +2,11 @@ import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { parse } from 'yaml';
 const compose = parse(await readFile('compose.production.yaml', 'utf8'));
-assert.equal(Object.keys(compose.services).length, 6);
+assert.equal(Object.keys(compose.services).length, 7);
 assert.equal(compose.networks.backend.internal, true);
 for (const [name, service] of Object.entries(compose.services)) {
   assert(name.startsWith('marketpilot-'));
-  assert(service.healthcheck?.test?.length);
+  if (!service.profiles?.includes('migrate')) assert(service.healthcheck?.test?.length);
   assert(service.mem_limit);
   if (
     name.includes('postgres') ||
@@ -47,5 +47,5 @@ for (const file of files) {
   }
 }
 console.log(
-  'Six isolated services and eleven workflow exports validated structurally. Runtime Docker/n8n validation still requires the services.',
+  'Six runtime services, one explicit migration service and eleven workflow exports validated structurally. Runtime Docker/n8n validation still requires the services.',
 );
