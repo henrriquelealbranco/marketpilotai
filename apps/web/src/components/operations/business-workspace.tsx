@@ -1543,7 +1543,8 @@ function Integrations({ demo }: { demo: boolean }) {
     }),
     action = useAction(demo),
     ops = useOperations(demo),
-    [message, setMessage] = useState('');
+    [message, setMessage] = useState(''),
+    [mlSecret, setMlSecret] = useState('');
   const data = query.data;
   async function connect() {
     try {
@@ -1615,6 +1616,40 @@ function Integrations({ demo }: { demo: boolean }) {
             />
             {item.name === 'Mercado Livre' && (
               <div className="control-actions">
+                {!item.configured && (
+                  <form
+                    className="control-form"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void action
+                        .run('/v1/integrations/mercadolivre/credentials', {
+                          clientSecret: mlSecret,
+                        })
+                        .then(() => setMlSecret(''))
+                        .catch(() => {});
+                    }}
+                  >
+                    <label>
+                      Chave secreta da aplicação
+                      <input
+                        type="password"
+                        autoComplete="off"
+                        value={mlSecret}
+                        onChange={(event) => setMlSecret(event.target.value)}
+                        placeholder="Cole a chave secreta do Mercado Livre"
+                        required
+                      />
+                    </label>
+                    <Button
+                      type="submit"
+                      size="sm"
+                      variant="outline"
+                      disabled={demo || !ops.admin || action.pending || !mlSecret.trim()}
+                    >
+                      Guardar chave cifrada
+                    </Button>
+                  </form>
+                )}
                 <Button
                   size="sm"
                   variant="outline"

@@ -10,6 +10,7 @@ import {
   encryptSecret,
   type Fetcher,
 } from '../../apps/api/src/integrations/index.js';
+import { mercadoLivreCredentials } from '../../apps/api/src/operations/marketplace.js';
 
 function transport(responses: Array<Response | Error>) {
   const requests: Array<{ url: URL; init: RequestInit }> = [];
@@ -67,6 +68,24 @@ describe('armazenamento de segredos', () => {
     } catch (error) {
       expect(String(error)).not.toContain('invalid-key');
     }
+  });
+});
+
+describe('credenciais privadas do Mercado Livre', () => {
+  it('usa a chave secreta criptografada do workspace quando não existe segredo no ambiente', async () => {
+    const key = randomBytes(32).toString('base64');
+    const db = {
+      integrationConnection: {
+        findUnique: async () => ({ encryptedAccessToken: encryptSecret('workspace-secret', key) }),
+      },
+    };
+
+    await expect(
+      mercadoLivreCredentials(db as never, 'workspace-1', {
+        MERCADOLIVRE_CLIENT_ID: 'application-id',
+        ENCRYPTION_KEY: key,
+      }),
+    ).resolves.toEqual({ clientId: 'application-id', clientSecret: 'workspace-secret' });
   });
 });
 

@@ -42,6 +42,7 @@ import {
   authorizeMercadoLivre,
   finishMercadoLivre,
   mercadoLivreToken,
+  saveMercadoLivreCredentials,
   syncMarketplaceOrders,
 } from './marketplace.js';
 
@@ -1149,12 +1150,17 @@ export async function registerOperationRoutes(app: FastifyInstance, db: Database
       const connection = await db.integrationConnection.findUnique({
         where: { workspaceId_provider: { workspaceId: workspace.id, provider: 'mercadolivre' } },
       });
+      const configuration = await db.integrationConnection.findUnique({
+        where: {
+          workspaceId_provider: { workspaceId: workspace.id, provider: 'mercadolivre_config' },
+        },
+      });
       return {
         mercadolivre: {
           configured: !!(
             process.env.MERCADOLIVRE_CLIENT_ID &&
-            process.env.MERCADOLIVRE_CLIENT_SECRET &&
-            process.env.ENCRYPTION_KEY
+            process.env.ENCRYPTION_KEY &&
+            (process.env.MERCADOLIVRE_CLIENT_SECRET || configuration?.encryptedAccessToken)
           ),
           connected: connection?.status === 'CONNECTED',
           account: connection?.metadataJson ?? null,
@@ -1170,6 +1176,19 @@ export async function registerOperationRoutes(app: FastifyInstance, db: Database
         redis: { configured: !!process.env.REDIS_URL },
         suppliers: { method: 'CSV/XML autorizado', automaticConnector: false },
       };
+    },
+  );
+
+  app.post(
+    '/v1/integrations/mercadolivre/credentials',
+    { schema: schema('Armazenar chave OAuth do Mercado Livre cifrada (ADMIN)') },
+    async (r) => {
+      const identity = await writer(r, true);
+      const input = z
+        .object({ clientSecret: z.string().trim().min(20).max(300) })
+        .strict()
+        .parse(r.body);
+      return saveMercadoLivreCredentials(db, identity, input.clientSecret);
     },
   );
 

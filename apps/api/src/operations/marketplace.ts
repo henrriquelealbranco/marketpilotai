@@ -12,14 +12,43 @@ import { requiredConfiguration } from './agents.js';
 import { event, audit, json, alert } from './store.js';
 import { canonicalHash } from './domain.js';
 
-export const mlAdapter = () =>
-  new MercadoLivreAdapter({
-    clientId: process.env.MERCADOLIVRE_CLIENT_ID,
-    clientSecret: process.env.MERCADOLIVRE_CLIENT_SECRET,
+type MarketplaceEnvironment = Partial<
+  Pick<
+    NodeJS.ProcessEnv,
+    | 'MERCADOLIVRE_CLIENT_ID'
+    | 'MERCADOLIVRE_CLIENT_SECRET'
+    | 'MERCADOLIVRE_REDIRECT_URI'
+    | 'APP_ORIGIN'
+    | 'ENCRYPTION_KEY'
+  >
+>;
+
+export async function mercadoLivreCredentials(
+  db: Database,
+  workspaceId: string,
+  env: MarketplaceEnvironment = process.env,
+) {
+  const stored = await db.integrationConnection.findUnique({
+    where: { workspaceId_provider: { workspaceId, provider: 'mercadolivre_config' } },
+  });
+  const clientSecret =
+    env.MERCADOLIVRE_CLIENT_SECRET ||
+    (stored?.encryptedAccessToken
+      ? decryptSecret(stored.encryptedAccessToken, env.ENCRYPTION_KEY)
+      : undefined);
+  return { clientId: env.MERCADOLIVRE_CLIENT_ID, clientSecret };
+}
+
+async function mlAdapter(db: Database, workspaceId: string) {
+  const credentials = await mercadoLivreCredentials(db, workspaceId);
+  return new MercadoLivreAdapter({
+    clientId: credentials.clientId,
+    clientSecret: credentials.clientSecret,
     redirectUri:
       process.env.MERCADOLIVRE_REDIRECT_URI ||
       `${process.env.APP_ORIGIN ?? 'http://localhost:3000'}/api/v1/integrations/mercadolivre/callback`,
   });
+}
 export function encryptionKey() {
   if (!process.env.ENCRYPTION_KEY)
     requiredConfiguration(
@@ -28,7 +57,8 @@ export function encryptionKey() {
   return process.env.ENCRYPTION_KEY;
 }
 export async function authorizeMercadoLivre(db: Database, identity: Identity) {
-  if (!process.env.MERCADOLIVRE_CLIENT_ID || !process.env.MERCADOLIVRE_CLIENT_SECRET)
+  const credentials = await mercadoLivreCredentials(db, identity.workspace.id);
+  if (!credentials.clientId || !credentials.clientSecret)
     requiredConfiguration('Credenciais OAuth do Mercado Livre ainda não configuradas.');
   const key = encryptionKey(),
     state = randomBytes(32).toString('base64url'),
@@ -46,7 +76,7 @@ export async function authorizeMercadoLivre(db: Database, identity: Identity) {
       expiresAt: new Date(Date.now() + 10 * 60000),
     },
   });
-  return { url: mlAdapter().authorizationUrl(state, challenge) };
+  return { url: (await mlAdapter(db, identity.workspace.id)).authorizationUrl(state, challenge) };
 }
 export async function finishMercadoLivre(
   db: Database,
@@ -69,8 +99,10 @@ export async function finishMercadoLivre(
   });
   if (claim.count !== 1) throw new HttpError(409, 'Autorização já processada.');
   const key = encryptionKey(),
-    tokens = await mlAdapter().exchangeCode(code, decryptSecret(saved.verifierEncrypted, key)),
-    user = await mlAdapter().getUser(tokens.accessToken);
+    tokens = await (
+      await mlAdapter(db, identity.workspace.id)
+    ).exchangeCode(code, decryptSecret(saved.verifierEncrypted, key)),
+    user = await (await mlAdapter(db, identity.workspace.id)).getUser(tokens.accessToken);
   if (Number(user.id) !== tokens.userId)
     throw new HttpError(400, 'A conta retornada não corresponde à autorização.');
   await db.integrationConnection.upsert({
@@ -115,9 +147,9 @@ export async function mercadoLivreToken(db: Database, workspaceId: string) {
   if (connection.expiresAt && connection.expiresAt.getTime() < Date.now() + 60000) {
     if (!connection.encryptedRefreshToken)
       requiredConfiguration('Reconecte a conta Mercado Livre.');
-    const tokens = await mlAdapter().refreshToken(
-      decryptSecret(connection.encryptedRefreshToken, key),
-    );
+    const tokens = await (
+      await mlAdapter(db, workspaceId)
+    ).refreshToken(decryptSecret(connection.encryptedRefreshToken, key));
     accessToken = tokens.accessToken;
     await db.integrationConnection.update({
       where: { id: connection.id },
@@ -129,7 +161,42 @@ export async function mercadoLivreToken(db: Database, workspaceId: string) {
     });
   }
   const metadata = connection.metadataJson as Record<string, unknown>;
-  return { accessToken, userId: Number(metadata.userId), adapter: mlAdapter() };
+  return {
+    accessToken,
+    userId: Number(metadata.userId),
+    adapter: await mlAdapter(db, workspaceId),
+  };
+}
+
+export async function saveMercadoLivreCredentials(
+  db: Database,
+  identity: Identity,
+  clientSecret: string,
+) {
+  if (!process.env.MERCADOLIVRE_CLIENT_ID)
+    requiredConfiguration(
+      'O ID da aplicação do Mercado Livre ainda não foi configurado no servidor.',
+    );
+  const key = encryptionKey();
+  await db.integrationConnection.upsert({
+    where: {
+      workspaceId_provider: { workspaceId: identity.workspace.id, provider: 'mercadolivre_config' },
+    },
+    create: {
+      workspaceId: identity.workspace.id,
+      provider: 'mercadolivre_config',
+      status: 'CONFIGURED',
+      encryptedAccessToken: encryptSecret(clientSecret, key),
+      metadataJson: json({}),
+    },
+    update: {
+      status: 'CONFIGURED',
+      encryptedAccessToken: encryptSecret(clientSecret, key),
+      metadataJson: json({}),
+    },
+  });
+  await audit(db, identity, 'integration.mercadolivre.credentials_configured');
+  return { configured: true };
 }
 export async function syncMarketplaceOrders(db: Database, identity: Identity, orderId?: number) {
   const { accessToken, userId, adapter } = await mercadoLivreToken(db, identity.workspace.id);
