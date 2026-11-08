@@ -101,6 +101,23 @@ services:
     cpus: 0.75
     pids_limit: 128
 
+  # One-shot, explicitly invoked only when applying a reviewed Prisma migration.
+  # It never exposes ports and never starts as part of `up -d`.
+  marketpilot-migrate:
+    <<: *node
+    profiles: ['migrate']
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+      target: migrate
+    image: ${MARKETPILOT_PROJECT_NAME:-marketpilot}-migrate:${MARKETPILOT_VERSION:-local}
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://marketpilot_app:${MARKETPILOT_DB_PASSWORD:?Set a URL-safe database password}@marketpilot-postgres:5432/marketpilot?connection_limit=5
+    networks: [backend]
+    depends_on:
+      marketpilot-postgres: { condition: service_healthy }
+
   marketpilot-worker:
     <<: *node
     build: { context: ., dockerfile: infra/docker/worker.Dockerfile }
