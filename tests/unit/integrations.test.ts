@@ -264,6 +264,43 @@ function responseOutput(value: unknown, extra = {}) {
   };
 }
 describe('OpenAI Responses', () => {
+  it('descobre fornecedores somente por busca web e preserva URLs de evidência', async () => {
+    const t = transport([
+      json(
+        responseOutput({
+          candidates: [
+            {
+              name: 'Fornecedor Exemplo',
+              sourceUrl: 'https://supplier.example.com/dropshipping',
+              catalogUrl: 'https://supplier.example.com/catalogo',
+              cnpj: null,
+              summary: 'Página pública descreve catálogo e atendimento para revenda.',
+              evidenceUrls: [
+                'https://supplier.example.com/dropshipping',
+                'https://supplier.example.com/catalogo',
+              ],
+              risks: ['CNPJ não encontrado na fonte consultada.'],
+            },
+          ],
+          limitations: ['Disponibilidade e preço precisam ser sincronizados pela fonte do fornecedor.'],
+        }),
+      ),
+    ]);
+    const result = await new OpenAIAdapter(
+      { apiKey: 'api-key', model: 'configured-model' },
+      t.fetcher,
+    ).discoverSuppliers('fornecedor dropshipping catálogo Brasil');
+
+    expect(result.candidates[0]).toMatchObject({
+      name: 'Fornecedor Exemplo',
+      sourceUrl: 'https://supplier.example.com/dropshipping',
+    });
+    const body = JSON.parse(String(t.requests[0]?.init.body));
+    expect(body).toMatchObject({
+      tools: [{ type: 'web_search', search_context_size: 'medium' }],
+      tool_choice: 'required',
+    });
+  });
   it('solicita JSON estruturado, limita tokens e retorna uso/custo sem raciocínio interno', async () => {
     const t = transport([json(responseOutput(analysis))]);
     const result = await new OpenAIAdapter(

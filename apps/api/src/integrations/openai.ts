@@ -52,6 +52,19 @@ export interface AnswerResult extends ResponseMetadata {
   confidence: number;
   risks: string[];
 }
+export interface SupplierDiscoveryCandidate {
+  name: string;
+  sourceUrl: string;
+  catalogUrl: string | null;
+  cnpj: string | null;
+  summary: string;
+  evidenceUrls: string[];
+  risks: string[];
+}
+export interface SupplierDiscoveryResult extends ResponseMetadata {
+  candidates: SupplierDiscoveryCandidate[];
+  limitations: string[];
+}
 
 const common = {
   evidence: z.array(z.string().min(1).max(512)).max(30),
@@ -66,6 +79,33 @@ const analysisSchema = z
   })
   .strict();
 const answerSchema = z.object({ ...common, answer: z.string().min(1).max(8000) }).strict();
+const safeSourceUrl = z
+  .httpUrl()
+  .max(1000)
+  .refine((value) => {
+    const url = new URL(value);
+    return url.protocol === 'https:' && !url.username && !url.password;
+  });
+const supplierDiscoverySchema = z
+  .object({
+    candidates: z
+      .array(
+        z
+          .object({
+            name: z.string().trim().min(2).max(160),
+            sourceUrl: safeSourceUrl,
+            catalogUrl: safeSourceUrl.nullable(),
+            cnpj: z.string().trim().max(30).nullable(),
+            summary: z.string().trim().min(1).max(1200),
+            evidenceUrls: z.array(safeSourceUrl).min(1).max(8),
+            risks: z.array(z.string().trim().min(1).max(500)).max(12),
+          })
+          .strict(),
+      )
+      .max(20),
+    limitations: z.array(z.string().trim().min(1).max(1000)).max(20),
+  })
+  .strict();
 const commonProperties = {
   evidence: {
     type: 'array',
@@ -93,6 +133,31 @@ const jsonSchemas = {
     properties: { ...commonProperties, answer: { type: 'string' } },
     required: ['evidence', 'answer', 'confidence', 'risks'],
   },
+  discovery: {
+    type: 'object',
+    additionalProperties: false,
+    properties: {
+      candidates: {
+        type: 'array',
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            name: { type: 'string' },
+            sourceUrl: { type: 'string' },
+            catalogUrl: { type: ['string', 'null'] },
+            cnpj: { type: ['string', 'null'] },
+            summary: { type: 'string' },
+            evidenceUrls: { type: 'array', items: { type: 'string' } },
+            risks: { type: 'array', items: { type: 'string' } },
+          },
+          required: ['name', 'sourceUrl', 'catalogUrl', 'cnpj', 'summary', 'evidenceUrls', 'risks'],
+        },
+      },
+      limitations: { type: 'array', items: { type: 'string' } },
+    },
+    required: ['candidates', 'limitations'],
+  },
 };
 const instructions = [
   'Você é um assistente operacional MarketPilot AI. Use exclusivamente os dados do contexto fornecido.',
@@ -103,6 +168,15 @@ const instructions = [
   'score, quando sustentado pelo contexto, é uma avaliação estimada entre 0 e 100, nunca demanda medida.',
   'Retorne apenas a conclusão concisa no schema solicitado. Não exponha cadeia de pensamento, raciocínio interno ou segredos.',
   'Recomendações são propostas: você não executa operações, não publica anúncios e não aprova ações.',
+].join(' ');
+const discoveryInstructions = [
+  'Você é o agente de descoberta de fornecedores do MarketPilot AI.',
+  'Use obrigatoriamente a ferramenta de busca web para encontrar somente fontes públicas e acessíveis por HTTPS.',
+  'Retorne candidatos de fornecedores, distribuidores ou plataformas de dropshipping relevantes para a consulta.',
+  'Cada candidato exige ao menos uma URL de evidência diretamente relacionada a ele. Não invente CNPJ, catálogo, estoque, preços, prazo, autorização, integração ou reputação.',
+  'Resultados de busca não são certificação: registre incertezas em risks e limitações globais.',
+  'Nunca ofereça ou publique produtos; esta etapa apenas descobre fontes para posterior validação e sincronização autorizada.',
+  'Retorne somente o JSON no schema solicitado e não exponha raciocínio interno ou segredos.',
 ].join(' ');
 
 function invalidResponse(): never {
@@ -195,7 +269,11 @@ export class OpenAIAdapter {
       );
     }
   }
-  async #respond(mode: 'analysis' | 'answer', context: JsonObject, fields: Record<string, string>) {
+  async #respond(
+    mode: 'analysis' | 'answer' | 'discovery',
+    context: JsonObject,
+    fields: Record<string, string>,
+  ) {
     const apiKey = requireValue(this.#config.apiKey, 'openai');
     const model = requireValue(this.#config.model, 'openai');
     if (model.length > 200 || !context || Array.isArray(context) || typeof context !== 'object')
@@ -217,9 +295,13 @@ export class OpenAIAdapter {
             {
               model,
               store: false,
-              tools: [],
+              tools:
+                mode === 'discovery'
+                  ? [{ type: 'web_search', search_context_size: 'medium' }]
+                  : [],
+              ...(mode === 'discovery' ? { tool_choice: 'required' } : {}),
               max_output_tokens: this.#maxOutputTokens,
-              instructions,
+              instructions: mode === 'discovery' ? discoveryInstructions : instructions,
               input: [{ role: 'user', content }],
               text: {
                 format: {
@@ -318,6 +400,19 @@ export class OpenAIAdapter {
     const validated = answerSchema.safeParse(parsed);
     if (!validated.success) invalidResponse();
     this.#evidence(context, validated.data.evidence, validated.data.confidence);
+    return { ...validated.data, ...metadata };
+  }
+  async discoverSuppliers(query: string): Promise<SupplierDiscoveryResult> {
+    if (typeof query !== 'string' || query.trim().length < 5 || query.length > 240)
+      invalidInput('openai');
+    const normalized = query.trim();
+    const { parsed, metadata } = await this.#respond(
+      'discovery',
+      { query: normalized },
+      { query: normalized },
+    );
+    const validated = supplierDiscoverySchema.safeParse(parsed);
+    if (!validated.success) invalidResponse();
     return { ...validated.data, ...metadata };
   }
 }

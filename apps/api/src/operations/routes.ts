@@ -24,7 +24,7 @@ import { requireIdentity, HttpError } from '../auth.js';
 
 import { getProduct } from '../catalog/service.js';
 
-import { N8nAdapter } from '../integrations/index.js';
+import { N8nAdapter, OpenAIAdapter } from '../integrations/index.js';
 
 import { parseWorkflowJob, serviceSignature } from '../../../worker/src/contract.js';
 
@@ -269,6 +269,112 @@ export async function registerOperationRoutes(app: FastifyInstance, db: Database
       return reply
         .status(201)
         .send(await runAgent(db, identity, agent, input.provider, input.productId));
+    },
+  );
+
+  app.post(
+    '/v1/suppliers/discover',
+    {
+      schema: schema(
+        'Descobrir fornecedores em fontes públicas com Web Search da OpenAI; não aprova nem publica',
+        z
+          .object({
+            query: z
+              .string()
+              .trim()
+              .min(5)
+              .max(240)
+              .default('fornecedores de dropshipping com catálogo para revenda no Brasil'),
+          })
+          .strict(),
+      ),
+    },
+    async (r, reply) => {
+      const identity = await writer(r, true);
+      if (!process.env.OPENAI_API_KEY || !process.env.OPENAI_MODEL)
+        requiredConfiguration('Configure a chave e o modelo OpenAI no servidor antes da descoberta.');
+      const input = z
+        .object({
+          query: z
+            .string()
+            .trim()
+            .min(5)
+            .max(240)
+            .default('fornecedores de dropshipping com catálogo para revenda no Brasil'),
+        })
+        .strict()
+        .parse(r.body);
+      const active = await db.agentRun.count({
+        where: { workspaceId: identity.workspace.id, agent: 'supplier-discovery', status: 'RUNNING' },
+      });
+      if (active) throw new HttpError(409, 'Uma descoberta de fornecedores já está em execução.');
+      const run = await db.agentRun.create({
+        data: {
+          workspaceId: identity.workspace.id,
+          actorId: identity.user.id,
+          agent: 'supplier-discovery',
+          provider: 'openai',
+          status: 'RUNNING',
+          startedAt: new Date(),
+          inputJson: json({ query: input.query, source: 'OPENAI_WEB_SEARCH' }),
+        },
+      });
+      try {
+        const analysis = await new OpenAIAdapter({
+          apiKey: process.env.OPENAI_API_KEY,
+          model: process.env.OPENAI_MODEL,
+          maxOutputTokens: 2800,
+        }).discoverSuppliers(input.query);
+        const completedAt = new Date();
+        await db.$transaction(async (tx) => {
+          await tx.agentRun.update({
+            where: { id: run.id },
+            data: {
+              status: 'COMPLETED',
+              outputJson: json(analysis),
+              model: analysis.model,
+              responseId: analysis.responseId,
+              inputTokens: analysis.usage?.inputTokens ?? 0,
+              outputTokens: analysis.usage?.outputTokens ?? 0,
+              estimatedCostMicrosUsd:
+                analysis.estimatedCostUsd === null
+                  ? null
+                  : Math.round(analysis.estimatedCostUsd * 1_000_000),
+              completedAt,
+              durationMs: completedAt.getTime() - run.createdAt.getTime(),
+            },
+          });
+          await tx.agentDecision.createMany({
+            data: analysis.candidates.map((candidate) => ({
+              workspaceId: identity.workspace.id,
+              runId: run.id,
+              recommendation: `Candidato encontrado: ${candidate.name}`,
+              evidenceJson: json(candidate),
+              score: null,
+            })),
+          });
+          await audit(tx, identity, 'supplier.discovery.completed');
+          await event(
+            tx,
+            identity.workspace.id,
+            'Supplier Discovery AI',
+            'supplier',
+            `${analysis.candidates.length} fontes candidatas encontradas; nenhuma foi aprovada automaticamente.`,
+            { runId: run.id, query: input.query },
+          );
+        });
+        return reply.status(201).send({ runId: run.id, ...analysis });
+      } catch (error) {
+        const code =
+          error && typeof error === 'object' && 'code' in error && typeof error.code === 'string'
+            ? error.code.slice(0, 80)
+            : 'discovery_failed';
+        await db.agentRun.update({
+          where: { id: run.id },
+          data: { status: 'FAILED', errorCode: code, completedAt: new Date() },
+        });
+        throw error;
+      }
     },
   );
 

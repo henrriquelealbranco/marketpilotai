@@ -33,7 +33,7 @@ import type {
   CatalogPreview,
   CatalogFormat,
 } from '@marketpilot/contracts';
-import { money, cn, number, daysLabel } from '@/lib/utils';
+import { api, money, cn, number, daysLabel } from '@/lib/utils';
 import { Button } from '../ui/button';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '../ui/dialog';
 import { useCatalog } from './use-catalog';
@@ -61,6 +61,17 @@ export function CatalogWorkspace({
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [busyId, setBusyId] = useState('');
+  const [discovery, setDiscovery] = useState<{
+    candidates: {
+      name: string;
+      sourceUrl: string;
+      catalogUrl: string | null;
+      summary: string;
+      evidenceUrls: string[];
+      risks: string[];
+    }[];
+    limitations: string[];
+  } | null>(null);
   const catalog = useCatalog(demo, kind, { q, status, page, supplierId });
   const base = demo ? '/demo' : '/app';
   const isProducts = kind === 'products';
@@ -115,6 +126,23 @@ export function CatalogWorkspace({
     );
     setPage(1);
   }
+  async function discoverSuppliers() {
+    setError('');
+    setMessage('');
+    setBusyId('supplier-discovery');
+    try {
+      const result = await api<typeof discovery>('/v1/suppliers/discover', {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
+      setDiscovery(result);
+      setMessage(`${result?.candidates.length ?? 0} fontes encontradas com evidências registradas.`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Não foi possível executar a descoberta.');
+    } finally {
+      setBusyId('');
+    }
+  }
   return (
     <>
       <Link className="back-link" href={base}>
@@ -140,6 +168,16 @@ export function CatalogWorkspace({
           </p>
         </div>
         <div className="heading-actions">
+          {!isProducts && !demo && (
+            <Button
+              variant="outline"
+              onClick={() => void discoverSuppliers()}
+              disabled={!catalog.canWrite || busyId === 'supplier-discovery'}
+            >
+              <Search size={16} />
+              {busyId === 'supplier-discovery' ? 'Buscando fontes...' : 'Buscar fornecedores com IA'}
+            </Button>
+          )}
           <Button
             variant="outline"
             onClick={() => setImportOpen(true)}
@@ -197,6 +235,35 @@ export function CatalogWorkspace({
         <p className="error-banner" role="alert">
           {error}
         </p>
+      )}
+      {discovery && !isProducts && (
+        <section className="panel catalog-panel" aria-live="polite">
+          <h2>Fontes encontradas</h2>
+          <p>
+            Resultados da busca web com links de evidência. Eles ainda não são fornecedores
+            aprovados nem têm catálogo sincronizado.
+          </p>
+          <div className="catalog-records">
+            {discovery.candidates.map((candidate) => (
+              <article className="catalog-record" key={candidate.sourceUrl}>
+                <strong>{candidate.name}</strong>
+                <p>{candidate.summary}</p>
+                <a className="text-link" href={candidate.sourceUrl} target="_blank" rel="noreferrer">
+                  Abrir fonte <ArrowUpRight size={12} />
+                </a>
+                {candidate.catalogUrl && (
+                  <a className="text-link" href={candidate.catalogUrl} target="_blank" rel="noreferrer">
+                    Abrir catálogo <ArrowUpRight size={12} />
+                  </a>
+                )}
+                {candidate.risks.length > 0 && <small>Riscos: {candidate.risks.join(' ')}</small>}
+              </article>
+            ))}
+          </div>
+          {discovery.limitations.length > 0 && (
+            <small>Limitações: {discovery.limitations.join(' ')}</small>
+          )}
+        </section>
       )}
       <section className="panel catalog-content">
         <div className="catalog-toolbar">
