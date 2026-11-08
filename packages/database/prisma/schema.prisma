@@ -38,6 +38,7 @@ model Workspace {
   connections IntegrationConnection[]
   oauthStates OAuthState[]
   conversations Conversation[]
+  supplierOutreaches SupplierOutreach[]
 }
 
 model User {
@@ -394,4 +395,30 @@ model Conversation {
   provider String
   createdAt DateTime @default(now())
   @@index([workspaceId,actorId,createdAt])
+}
+model SupplierOutreach {
+  id String @id @default(uuid())
+  workspaceId String
+  workspace Workspace @relation(fields:[workspaceId],references:[id],onDelete:Cascade)
+  supplierId String?
+  contactEmail String
+  contactUrl String?
+  subject String
+  body String
+  idempotencyKey String
+  status String @default("PENDING_APPROVAL")
+  approvalId String?
+  providerMessageId String?
+  providerThreadId String?
+  classification String?
+  replySummary String?
+  catalogUrl String?
+  errorCode String?
+  sentAt DateTime?
+  repliedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([workspaceId,idempotencyKey])
+  @@index([workspaceId,status,createdAt])
+  @@index([workspaceId,contactEmail])
 }

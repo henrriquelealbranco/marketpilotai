@@ -34,6 +34,7 @@ import { runAgent, requiredConfiguration } from './agents.js';
 import { analytics, contextSnapshot, event, audit, json, alert } from './store.js';
 
 import { canonicalHash, sanitizeCsvCell } from './domain.js';
+import { normalizeContactEmail, outreachKey } from '../suppliers/outreach.js';
 
 import { createDispatcher, executeWorkflow, workflowKey } from './workflows.js';
 
@@ -405,6 +406,92 @@ export async function registerOperationRoutes(app: FastifyInstance, db: Database
         });
         throw error;
       }
+    },
+  );
+
+  app.get(
+    '/v1/supplier-outreach',
+    { schema: schema('Histórico de contatos comerciais por e-mail; sem conteúdo de credenciais') },
+    async (r) => {
+      const { workspace } = await requireIdentity(db, r);
+      return {
+        items: await db.supplierOutreach.findMany({
+          where: { workspaceId: workspace.id },
+          orderBy: { createdAt: 'desc' },
+          take: 100,
+        }),
+      };
+    },
+  );
+
+  app.post(
+    '/v1/supplier-outreach/drafts',
+    { schema: schema('Preparar e-mail comercial e solicitar aprovação antes de qualquer envio') },
+    async (r, reply) => {
+      const identity = await writer(r, true);
+      const input = z
+        .object({
+          supplierId: z.uuid().optional(),
+          contactEmail: z.string().trim().max(254),
+          contactUrl: z.url().max(1000).optional(),
+          subject: z.string().trim().min(4).max(160),
+          body: z.string().trim().min(20).max(5000),
+        })
+        .strict()
+        .parse(r.body);
+      const contactEmail = normalizeContactEmail(input.contactEmail);
+      const idempotencyKey = outreachKey({
+        supplierId: input.supplierId ?? 'unlinked-public-contact',
+        email: contactEmail,
+        subject: input.subject,
+        body: input.body,
+      });
+      const result = await db.$transaction(async (tx) => {
+        const existing = await tx.supplierOutreach.findUnique({
+          where: { workspaceId_idempotencyKey: { workspaceId: identity.workspace.id, idempotencyKey } },
+        });
+        if (existing) throw new HttpError(409, 'Este e-mail já foi preparado para este contato.');
+        const payload = {
+          channel: 'EMAIL',
+          provider: 'GMAIL_OR_SMTP_VIA_N8N',
+          contactEmail,
+          contactUrl: input.contactUrl ?? null,
+          subject: input.subject,
+          body: input.body,
+          idempotencyKey,
+          execution: 'REQUIRES_GMAIL_CONNECTION_AND_APPROVAL',
+        };
+        const approval = await tx.approval.create({
+          data: {
+            workspaceId: identity.workspace.id,
+            kind: 'SUPPLIER_EMAIL_SEND',
+            title: `E-mail comercial: ${input.subject}`.slice(0, 160),
+            payloadJson: json(payload),
+            payloadHash: canonicalHash(payload),
+            requestedById: identity.user.id,
+            expiresAt: new Date(Date.now() + 7 * 86400000),
+          },
+        });
+        const outreach = await tx.supplierOutreach.create({
+          data: {
+            workspaceId: identity.workspace.id,
+            supplierId: input.supplierId,
+            contactEmail,
+            contactUrl: input.contactUrl,
+            subject: input.subject,
+            body: input.body,
+            idempotencyKey,
+            approvalId: approval.id,
+          },
+        });
+        await audit(tx, identity, 'supplier.outreach.prepared');
+        await event(tx, identity.workspace.id, 'supplier-outreach', 'supplier', 'E-mail comercial aguarda aprovação.', {
+          outreachId: outreach.id,
+          approvalId: approval.id,
+        });
+        return { outreach, approval };
+      });
+      return reply.status(201).send(result);
     },
   );
 
