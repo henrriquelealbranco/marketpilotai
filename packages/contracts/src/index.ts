@@ -14,7 +14,7 @@ export const loginSchema = z.object({
   password: z.string().min(1).max(128),
 });
 export const registerSchema = loginSchema.extend({
-  password: z.string().min(12, 'Use pelo menos 12 caracteres.').max(128),
+  password: z.string().min(6, 'Use pelo menos 6 caracteres.').max(128),
   name: z.string().trim().min(2).max(80),
   workspaceName: z.string().trim().min(2).max(80),
 });
